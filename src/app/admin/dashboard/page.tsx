@@ -60,7 +60,7 @@ export default function AdminDashboardPage() {
       description: "",
       date: undefined,
       endDate: undefined,
-      type: "",
+      type: "", // Empty string means placeholder will be shown initially
       imageUrl: "",
     },
   });
@@ -85,10 +85,11 @@ export default function AdminDashboardPage() {
         if (data.endDate) {
           eventData.endDate = Timestamp.fromDate(data.endDate);
         }
-        if (data.type && data.type !== "default") {
+        // Check if type is selected and not the placeholder default value
+        if (data.type && data.type !== "--") {
           eventData.type = data.type;
         }
-        if (data.imageUrl) {
+        if (data.imageUrl && data.imageUrl.trim() !== "") {
           eventData.imageUrl = data.imageUrl;
         }
 
@@ -206,12 +207,13 @@ export default function AdminDashboardPage() {
                   control={form.control}
                   name="type"
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || ""}> {/* Ensure value is string for Select */}
                       <SelectTrigger id="type">
                         <SelectValue placeholder="Select event type (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Default</SelectItem>
+                        {/* Changed value from "" to "--" for the Default option */}
+                        <SelectItem value="--">Default</SelectItem> 
                         <SelectItem value="event1">Rawngbawlna</SelectItem>
                         <SelectItem value="event2">Hla Zir</SelectItem>
                       </SelectContent>
