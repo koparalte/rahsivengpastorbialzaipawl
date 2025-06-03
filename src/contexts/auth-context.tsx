@@ -69,12 +69,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setAuthError(null);
     } catch (error: any) {
-      console.error("Google login error:", error);
+      console.error("Google login error (full object):", error); // Log full error object
       let errorMessage = "Failed to sign in with Google. Please try again.";
       if (error.code === 'auth/popup-closed-by-user') {
         errorMessage = "Login cancelled. The Google Sign-In popup was closed.";
       } else if (error.code === 'auth/cancelled-popup-request') {
         errorMessage = "Login cancelled. Multiple login popups were opened.";
+      } else if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = "Error: This domain is not authorized for Google Sign-In. Please check your Firebase project settings (Authentication -> Settings -> Authorized domains) and ensure 'localhost' is listed and changes have propagated. Also try clearing browser cache.";
+      } else {
+        errorMessage = error.message || errorMessage;
       }
       toast({
         title: "Login Failed",
@@ -106,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setAuthError(null);
     } catch (error: any) {
-      console.error("Logout error:", error);
+      console.error("Logout error (full object):", error); // Log full error object
       toast({
         title: "Logout Failed",
         description: error.message || "Failed to log out. Please try again.",
