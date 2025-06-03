@@ -81,9 +81,9 @@ export function MemberStats({ members }: MemberStatsProps) {
           </CardHeader>
           <CardContent>
             {kohhranStats.length > 0 ? (
-              <ul className="space-y-3 text-sm max-h-72 overflow-y-auto pr-1">
+              <ul className="flex flex-row space-x-4 text-sm overflow-x-auto py-2">
                 {kohhranStats.map(stat => (
-                  <li key={stat.name} className="p-3 rounded-md border bg-card/50 shadow-sm">
+                  <li key={stat.name} className="flex-shrink-0 w-60 p-3 rounded-md border bg-card/50 shadow-sm">
                     <div className="flex justify-between items-center font-semibold mb-1.5">
                       <span className="text-card-foreground truncate pr-2" title={stat.name}>{stat.name}:</span>
                       <span className="text-card-foreground font-bold text-xs">{stat.totalCount}</span>
