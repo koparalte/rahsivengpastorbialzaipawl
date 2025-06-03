@@ -1,0 +1,187 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 160 40% 71%; /* #98D2C0 - User requested light teal/mint */
+    --foreground: 160 15% 20%;   /* Dark tealish gray for text */
+    --card: 160 30% 96%;           /* Very light, almost white with a hint of green for cards */
+    --card-foreground: 160 15% 20%; /* Dark tealish gray text on cards */
+    --popover: 160 30% 96%;
+    --popover-foreground: 160 15% 20%;
+    --primary: 217 91% 59%;      /* Original Primary Blue - #4285F4 */
+    --primary-foreground: 0 0% 98%; /* White */
+    --secondary: 160 30% 88%;     /* Light gray with a hint of the theme color */
+    --secondary-foreground: 160 15% 25%; /* Darker text on secondary */
+    --muted: 160 25% 92%;       /* Lighter, desaturated version for muted backgrounds */
+    --muted-foreground: 160 15% 45%; /* Lighter dark text for muted bg */
+    --accent: 43 90% 48%;        /* Original Accent Orange - #F4B400 */
+    --accent-foreground: 0 0% 10%;   /* Dark text on accent */
+    --destructive: 0 84.2% 60.2%; /* Standard red */
+    --destructive-foreground: 0 0% 98%;
+    --border: 160 30% 60%;       /* Border color, a bit darker than background */
+    --input: 160 30% 65%;           /* Input backgrounds */
+    --ring: 217 91% 59%;         /* Original Primary for focus rings */
+    --radius: 0.5rem;
+
+    --chart-1: 217 91% 59%; /* Primary */
+    --chart-2: 43 90% 48%;  /* Accent */
+    --chart-3: 120 60% 50%; /* A green */
+    --chart-4: 280 70% 60%; /* A purple */
+    --chart-5: 0 80% 65%;   /* A red/pink */
+
+    /* Sidebar specific colors (adjusted for new light background) */
+    --sidebar-background: 160 35% 65%; /* Slightly darker than main background */
+    --sidebar-foreground: 160 15% 15%;   /* Dark text for sidebar */
+    --sidebar-primary: 217 91% 59%;      /* Original Primary */
+    --sidebar-primary-foreground: 0 0% 98%; /* White */
+    --sidebar-accent: 160 35% 58%;         /* Darker shade for hover/active states */
+    --sidebar-accent-foreground: 0 0% 98%; /* White for contrast on sidebar accent */
+    --sidebar-border: 160 30% 55%;       /* Border for sidebar elements */
+    --sidebar-ring: 217 91% 59%;         /* Original Primary for focus rings */
+  }
+
+  .dark {
+    --background: 220 20% 12%; /* Dark Blue */
+    --foreground: 220 70% 90%; /* Light text */
+    --card: 220 20% 18%; /* Slightly lighter dark blue */
+    --card-foreground: 220 70% 90%;
+    --popover: 220 20% 18%;
+    --popover-foreground: 220 70% 90%;
+    --primary: 217 91% 65%; /* Slightly lighter Primary for dark mode */
+    --primary-foreground: 220 15% 15%; /* Dark text on lighter primary */
+    --secondary: 220 20% 25%;
+    --secondary-foreground: 220 70% 85%;
+    --muted: 220 20% 22%;
+    --muted-foreground: 220 30% 60%;
+    --accent: 43 90% 55%; /* Slightly lighter Accent for dark mode */
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 20% 28%;
+    --input: 220 20% 25%;
+    --ring: 217 91% 65%;
+
+    --chart-1: 217 91% 65%;
+    --chart-2: 43 90% 55%;
+    --chart-3: 120 50% 60%;
+    --chart-4: 280 60% 70%;
+    --chart-5: 0 70% 70%;
+    
+    /* Sidebar specific colors for dark mode */
+    --sidebar-background: 220 20% 10%;
+    --sidebar-foreground: 220 70% 90%;
+    --sidebar-primary: 217 91% 65%;
+    --sidebar-primary-foreground: 220 15% 15%;
+    --sidebar-accent: 220 20% 15%;
+    --sidebar-accent-foreground: 217 91% 65%;
+    --sidebar-border: 220 20% 28%;
+    --sidebar-ring: 217 91% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Default event dot style (using accent color) */
+.day-has-event-default {
+  position: relative;
+}
+.day-has-event-default > .rdp-button_reset.rdp-button {
+  font-weight: bold;
+}
+.day-has-event-default::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: hsl(var(--accent)); /* Default Accent color dot */
+}
+
+/* Event Type 1 (Red dot) */
+.day-has-event-type1 {
+  position: relative;
+}
+.day-has-event-type1 > .rdp-button_reset.rdp-button {
+  font-weight: bold;
+}
+.day-has-event-type1::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: hsl(var(--destructive)); /* Red dot */
+}
+
+/* Event Type 2 (Blue dot) */
+.day-has-event-type2 {
+  position: relative;
+}
+.day-has-event-type2 > .rdp-button_reset.rdp-button {
+  font-weight: bold;
+}
+.day-has-event-type2::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: hsl(var(--primary)); /* Blue dot */
+}
+
+/* Ensure dots are visible on selected/today event days with contrasting color */
+.rdp-day_selected.day-has-event-default::after,
+.rdp-day_today.day-has-event-default::after {
+  background-color: hsl(var(--accent-foreground));
+}
+.rdp-day_selected.day-has-event-type1::after,
+.rdp-day_today.day-has-event-type1::after {
+  background-color: hsl(var(--destructive-foreground)); /* Contrast for red dot */
+}
+.rdp-day_selected.day-has-event-type2::after,
+.rdp-day_today.day-has-event-type2::after {
+  background-color: hsl(var(--primary-foreground)); /* Contrast for blue dot */
+}
+
+/* Ensure dots are visible on days that are both Sunday (destructive text color) and have an event */
+.text-destructive.day-has-event-default::after {
+  background-color: hsl(var(--accent));
+}
+.text-destructive.day-has-event-type1::after {
+  /* Red text on red dot might be hard to see, but dot is primary indicator */
+  background-color: hsl(var(--destructive)); 
+}
+.text-destructive.day-has-event-type2::after {
+  background-color: hsl(var(--primary));
+}
+
+/* Ensure dots have contrast on selected Sundays */
+.rdp-day_selected.text-destructive.day-has-event-default::after {
+   background-color: hsl(var(--background));
+}
+.rdp-day_selected.text-destructive.day-has-event-type1::after {
+   background-color: hsl(var(--destructive-foreground)); /* Contrast for selected red dot on red text day */
+}
+.rdp-day_selected.text-destructive.day-has-event-type2::after {
+   background-color: hsl(var(--primary-foreground)); /* Contrast for selected blue dot on red text day */
+}
+

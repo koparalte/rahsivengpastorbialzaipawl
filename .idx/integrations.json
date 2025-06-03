@@ -1,0 +1,6 @@
+{
+  "firebase_hosting": {
+    "deploymentHostingUrl": "https://kopaguide.web.app"
+  },
+  "cloud_run_deploy": {}
+}

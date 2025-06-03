@@ -1,0 +1,23 @@
+{
+  "name": "Rahsiveng Pastor Bial Zaipawl",
+  "short_name": "RsvBialZaipawl",
+  "description": "Zaipawl info",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#98D2C0",
+  "theme_color": "#98D2C0",
+  "icons": [
+    {
+      "src": "/app_icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/app_icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
