@@ -5,7 +5,7 @@
 
 @layer base {
   :root {
-    --background: 202 68% 58%; /* #4DA8DA */
+    --background: 160 35% 65%; /* #98D2C0 */
     --foreground: 160 15% 20%;   /* Dark tealish gray for text */
     --card: 160 30% 96%;           /* Very light, almost white with a hint of green for cards */
     --card-foreground: 160 15% 20%; /* Dark tealish gray text on cards */
