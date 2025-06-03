@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, PlusCircle, Edit3, Trash2, LayoutDashboard, Calendar as CalendarIcon, Image as ImageIcon, Type, FileText, ListChecks, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Edit3, Trash2, LayoutDashboard, Calendar as CalendarIcon, Image as ImageIcon, Type, FileText, ListChecks, AlertTriangle, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Dialog,
@@ -30,19 +30,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { db, firebaseInitializationError } from '@/lib/firebase';
-import { collection, addDoc, Timestamp, getDocs, deleteDoc, doc, onSnapshot, QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
+import { collection, addDoc, Timestamp, getDocs, deleteDoc, doc, onSnapshot, QueryDocumentSnapshot, DocumentData, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
 import React, { useState, useTransition, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 const NO_IMAGE_SELECTED_VALUE = "--NO_IMAGE_SELECTED--";
+const DEFAULT_EVENT_TYPE_VALUE = "--";
 
 const eventFormSchema = z.object({
+  id: z.string().optional(), // For editing
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   date: z.date({ required_error: "Date is required." }),
@@ -61,11 +62,11 @@ const eventFormSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
 
-interface EventItem {
-  id: string;
-  title: string;
-  date: Date;
+interface EventItem extends EventFormValues {
+  id: string; // Ensure id is always present for EventItem used in lists
+  // date and endDate will be Date objects after fetching and conversion
 }
+
 
 const bcmImageUrls = [
   { name: "None", value: NO_IMAGE_SELECTED_VALUE },
@@ -78,12 +79,15 @@ const bcmImageUrls = [
 
 export default function AdminDashboardPage() {
   const [isAddEventDialogOpen, setIsAddEventDialogOpen] = useState(false);
-  const [isAddEventSubmitting, startAddEventTransition] = useTransition();
+  const [isEditEventDialogOpen, setIsEditEventDialogOpen] = useState(false);
+  const [isSubmitting, startTransition] = useTransition();
   const { toast } = useToast();
+  const [currentEvent, setCurrentEvent] = useState<EventItem | null>(null);
 
-  const [allEventsForDeletion, setAllEventsForDeletion] = useState<EventItem[]>([]);
-  const [isLoadingDeleteList, setIsLoadingDeleteList] = useState(true);
-  const [deleteListError, setDeleteListError] = useState<string | null>(null);
+  const [manageableEvents, setManageableEvents] = useState<EventItem[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const [eventsError, setEventsError] = useState<string | null>(null);
+  
   const [eventToDelete, setEventToDelete] = useState<EventItem | null>(null);
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [isDeletingEvent, startDeleteEventTransition] = useTransition();
@@ -96,12 +100,12 @@ export default function AdminDashboardPage() {
       description: "",
       date: undefined,
       endDate: undefined,
-      type: "",
+      type: DEFAULT_EVENT_TYPE_VALUE,
       imageUrl: NO_IMAGE_SELECTED_VALUE,
     },
   });
 
-  const onAddEventSubmit = async (data: EventFormValues) => {
+  const onSubmit: SubmitHandler<EventFormValues> = async (data) => {
     if (firebaseInitializationError || !db) {
       toast({
         title: "Error",
@@ -111,36 +115,64 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    startAddEventTransition(async () => {
+    startTransition(async () => {
       try {
         const eventData: any = {
           title: data.title,
           description: data.description,
-          date: Timestamp.fromDate(data.date),
+          date: Timestamp.fromDate(data.date as Date), // Assert date is not undefined
+          updatedAt: serverTimestamp(),
         };
+
         if (data.endDate) {
           eventData.endDate = Timestamp.fromDate(data.endDate);
+        } else {
+          eventData.endDate = null; // Or delete if you prefer field removal
         }
-        if (data.type && data.type !== "--") {
+        
+        if (data.type && data.type !== DEFAULT_EVENT_TYPE_VALUE) {
           eventData.type = data.type;
+        } else {
+           eventData.type = null; // Or delete
         }
+        
         if (data.imageUrl && data.imageUrl !== NO_IMAGE_SELECTED_VALUE && data.imageUrl.trim() !== "") {
           eventData.imageUrl = data.imageUrl;
+        } else {
+          eventData.imageUrl = null; // Or delete
         }
 
-        await addDoc(collection(db, "calendarEvents"), eventData);
-
-        toast({
-          title: "Success!",
-          description: "Event added successfully.",
+        if (currentEvent && currentEvent.id) { // Editing existing event
+          const eventRef = doc(db, "calendarEvents", currentEvent.id);
+          await updateDoc(eventRef, eventData);
+          toast({
+            title: "Success!",
+            description: "Event updated successfully.",
+          });
+          setIsEditEventDialogOpen(false);
+        } else { // Adding new event
+          eventData.createdAt = serverTimestamp();
+          await addDoc(collection(db, "calendarEvents"), eventData);
+          toast({
+            title: "Success!",
+            description: "Event added successfully.",
+          });
+          setIsAddEventDialogOpen(false);
+        }
+        form.reset({ 
+            title: "", 
+            description: "", 
+            date: undefined, 
+            endDate: undefined, 
+            type: DEFAULT_EVENT_TYPE_VALUE, 
+            imageUrl: NO_IMAGE_SELECTED_VALUE 
         });
-        form.reset();
-        setIsAddEventDialogOpen(false);
+        setCurrentEvent(null); // Reset current event after submission
       } catch (error) {
-        console.error("Error adding event to Firestore:", error);
+        console.error("Error saving event to Firestore:", error);
         toast({
           title: "Error",
-          description: "Failed to add event. Please check console for details.",
+          description: "Failed to save event. Please check console for details.",
           variant: "destructive",
         });
       }
@@ -149,12 +181,12 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (firebaseInitializationError || !db) {
-      setDeleteListError(`Firebase is not configured: ${firebaseInitializationError || "Firestore unavailable."}`);
-      setIsLoadingDeleteList(false);
+      setEventsError(`Firebase is not configured: ${firebaseInitializationError || "Firestore unavailable."}`);
+      setIsLoadingEvents(false);
       return;
     }
 
-    setIsLoadingDeleteList(true);
+    setIsLoadingEvents(true);
     const eventsCollectionRef = collection(db, "calendarEvents");
     const unsubscribe = onSnapshot(eventsCollectionRef, (snapshot) => {
       const fetchedEvents: EventItem[] = snapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
@@ -162,20 +194,52 @@ export default function AdminDashboardPage() {
         return {
           id: docSnap.id,
           title: data.title || "Untitled Event",
+          description: data.description || "",
           date: data.date instanceof Timestamp ? data.date.toDate() : new Date(),
+          endDate: data.endDate instanceof Timestamp ? data.endDate.toDate() : undefined,
+          type: data.type || DEFAULT_EVENT_TYPE_VALUE,
+          imageUrl: data.imageUrl || NO_IMAGE_SELECTED_VALUE,
         };
       });
-      setAllEventsForDeletion(fetchedEvents.sort((a, b) => b.date.getTime() - a.date.getTime())); // Sort by date descending
-      setIsLoadingDeleteList(false);
-      setDeleteListError(null);
+      setManageableEvents(fetchedEvents.sort((a, b) => (b.date as Date).getTime() - (a.date as Date).getTime()));
+      setIsLoadingEvents(false);
+      setEventsError(null);
     }, (error) => {
-      console.error("Error fetching events for deletion list:", error);
-      setDeleteListError("Failed to load events for deletion. Please check console.");
-      setIsLoadingDeleteList(false);
+      console.error("Error fetching events:", error);
+      setEventsError("Failed to load events. Please check console.");
+      setIsLoadingEvents(false);
     });
 
     return () => unsubscribe();
   }, [db, firebaseInitializationError]);
+
+  const handleEditEventClick = (event: EventItem) => {
+    setCurrentEvent(event);
+    form.reset({
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      date: event.date,
+      endDate: event.endDate,
+      type: event.type || DEFAULT_EVENT_TYPE_VALUE,
+      imageUrl: event.imageUrl || NO_IMAGE_SELECTED_VALUE,
+    });
+    setIsEditEventDialogOpen(true);
+  };
+  
+  const openAddEventDialog = () => {
+    setCurrentEvent(null); // Ensure no current event is set for adding
+    form.reset({ // Reset form to default values for adding
+        title: "", 
+        description: "", 
+        date: undefined, 
+        endDate: undefined, 
+        type: DEFAULT_EVENT_TYPE_VALUE, 
+        imageUrl: NO_IMAGE_SELECTED_VALUE 
+    });
+    setIsAddEventDialogOpen(true);
+  };
+
 
   const handleDeleteEventClick = (event: EventItem) => {
     setEventToDelete(event);
@@ -192,7 +256,7 @@ export default function AdminDashboardPage() {
           title: "Event Deleted",
           description: `"${eventToDelete.title}" has been successfully deleted.`,
         });
-        setAllEventsForDeletion(prevEvents => prevEvents.filter(e => e.id !== eventToDelete.id));
+        setManageableEvents(prevEvents => prevEvents.filter(e => e.id !== eventToDelete.id));
       } catch (error) {
         console.error("Error deleting event:", error);
         toast({
@@ -206,6 +270,107 @@ export default function AdminDashboardPage() {
       }
     });
   };
+  
+  const renderEventForm = (isEditing: boolean) => (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+      <div>
+        <Label htmlFor="title" className="flex items-center gap-1 mb-1"><FileText className="h-4 w-4" />Title</Label>
+        <Input id="title" {...form.register("title")} placeholder="Event Title" />
+        {form.formState.errors.title && <p className="text-xs text-destructive mt-1">{form.formState.errors.title.message}</p>}
+      </div>
+      <div>
+        <Label htmlFor="description" className="flex items-center gap-1 mb-1"><FileText className="h-4 w-4" />Description</Label>
+        <Textarea id="description" {...form.register("description")} placeholder="Event Description" />
+        {form.formState.errors.description && <p className="text-xs text-destructive mt-1">{form.formState.errors.description.message}</p>}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="date" className="flex items-center gap-1 mb-1"><CalendarIcon className="h-4 w-4" />Start Date</Label>
+          <Controller
+            control={form.control}
+            name="date"
+            render={({ field }) => (
+              <DatePicker
+                date={field.value}
+                setDate={field.onChange}
+                placeholder="Select start date"
+              />
+            )}
+          />
+          {form.formState.errors.date && <p className="text-xs text-destructive mt-1">{form.formState.errors.date.message}</p>}
+        </div>
+        <div>
+          <Label htmlFor="endDate" className="flex items-center gap-1 mb-1"><CalendarIcon className="h-4 w-4" />End Date (Optional)</Label>
+           <Controller
+            control={form.control}
+            name="endDate"
+            render={({ field }) => (
+              <DatePicker
+                date={field.value}
+                setDate={field.onChange}
+                placeholder="Select end date"
+                disabled={(date) => form.getValues("date") ? date < form.getValues("date") : false}
+              />
+            )}
+          />
+          {form.formState.errors.endDate && <p className="text-xs text-destructive mt-1">{form.formState.errors.endDate.message}</p>}
+        </div>
+      </div>
+      <div>
+        <Label htmlFor="type" className="flex items-center gap-1 mb-1"><Type className="h-4 w-4" />Event Type (Optional)</Label>
+        <Controller
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <Select onValueChange={field.onChange} value={field.value || DEFAULT_EVENT_TYPE_VALUE}>
+              <SelectTrigger id="type">
+                <SelectValue placeholder="Select event type (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={DEFAULT_EVENT_TYPE_VALUE}>Default</SelectItem>
+                <SelectItem value="event1">Rawngbawlna</SelectItem>
+                <SelectItem value="event2">Hla Zir</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {form.formState.errors.type && <p className="text-xs text-destructive mt-1">{form.formState.errors.type.message}</p>}
+      </div>
+      <div>
+        <Label htmlFor="imageUrl" className="flex items-center gap-1 mb-1"><ImageIcon className="h-4 w-4" />Image (Optional)</Label>
+        <Controller
+          control={form.control}
+          name="imageUrl"
+          render={({ field }) => (
+            <Select onValueChange={field.onChange} value={field.value || NO_IMAGE_SELECTED_VALUE}>
+              <SelectTrigger id="imageUrl">
+                <SelectValue placeholder="Select BCM Image (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {bcmImageUrls.map(bcm => (
+                  <SelectItem key={bcm.name} value={bcm.value}>
+                    {bcm.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
+      </div>
+      <DialogFooter>
+        <DialogClose asChild>
+          <Button type="button" variant="outline" disabled={isSubmitting}>
+            Cancel
+          </Button>
+        </DialogClose>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isEditing ? "Save Changes" : "Add Event"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-6">
@@ -227,9 +392,10 @@ export default function AdminDashboardPage() {
       </CardDescription>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Add Event Dialog */}
         <Dialog open={isAddEventDialogOpen} onOpenChange={setIsAddEventDialogOpen}>
           <DialogTrigger asChild>
-            <Card className="shadow-md hover:shadow-lg transition-shadow cursor-pointer">
+            <Card className="shadow-md hover:shadow-lg transition-shadow cursor-pointer" onClick={openAddEventDialog}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <PlusCircle className="h-5 w-5 text-primary" />
@@ -238,7 +404,7 @@ export default function AdminDashboardPage() {
                 <CardDescription>Create a new event for the calendar.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">Click here to open the form for inputting event details (date, title, description, etc.).</p>
+                <p className="text-sm text-muted-foreground">Click here to open the form for inputting event details.</p>
                 <Button className="w-full">
                   Add Event
                 </Button>
@@ -252,123 +418,72 @@ export default function AdminDashboardPage() {
                 Fill in the details below to add a new event to the calendar.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={form.handleSubmit(onAddEventSubmit)} className="space-y-4 py-2">
-              <div>
-                <Label htmlFor="title" className="flex items-center gap-1 mb-1"><FileText className="h-4 w-4" />Title</Label>
-                <Input id="title" {...form.register("title")} placeholder="Event Title" />
-                {form.formState.errors.title && <p className="text-xs text-destructive mt-1">{form.formState.errors.title.message}</p>}
-              </div>
-              <div>
-                <Label htmlFor="description" className="flex items-center gap-1 mb-1"><FileText className="h-4 w-4" />Description</Label>
-                <Textarea id="description" {...form.register("description")} placeholder="Event Description" />
-                {form.formState.errors.description && <p className="text-xs text-destructive mt-1">{form.formState.errors.description.message}</p>}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="date" className="flex items-center gap-1 mb-1"><CalendarIcon className="h-4 w-4" />Start Date</Label>
-                  <Controller
-                    control={form.control}
-                    name="date"
-                    render={({ field }) => (
-                      <DatePicker
-                        date={field.value}
-                        setDate={field.onChange}
-                        placeholder="Select start date"
-                      />
-                    )}
-                  />
-                  {form.formState.errors.date && <p className="text-xs text-destructive mt-1">{form.formState.errors.date.message}</p>}
-                </div>
-                <div>
-                  <Label htmlFor="endDate" className="flex items-center gap-1 mb-1"><CalendarIcon className="h-4 w-4" />End Date (Optional)</Label>
-                   <Controller
-                    control={form.control}
-                    name="endDate"
-                    render={({ field }) => (
-                      <DatePicker
-                        date={field.value}
-                        setDate={field.onChange}
-                        placeholder="Select end date"
-                        disabled={(date) => form.getValues("date") ? date < form.getValues("date") : false}
-                      />
-                    )}
-                  />
-                  {form.formState.errors.endDate && <p className="text-xs text-destructive mt-1">{form.formState.errors.endDate.message}</p>}
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="type" className="flex items-center gap-1 mb-1"><Type className="h-4 w-4" />Event Type (Optional)</Label>
-                <Controller
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
-                      <SelectTrigger id="type">
-                        <SelectValue placeholder="Select event type (optional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="--">Default</SelectItem>
-                        <SelectItem value="event1">Rawngbawlna</SelectItem>
-                        <SelectItem value="event2">Hla Zir</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {form.formState.errors.type && <p className="text-xs text-destructive mt-1">{form.formState.errors.type.message}</p>}
-              </div>
-              <div>
-                <Label htmlFor="imageUrl" className="flex items-center gap-1 mb-1"><ImageIcon className="h-4 w-4" />Image URL (Optional)</Label>
-                <Controller
-                  control={form.control}
-                  name="imageUrl"
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value || NO_IMAGE_SELECTED_VALUE}>
-                      <SelectTrigger id="imageUrl">
-                        <SelectValue placeholder="Select BCM Image (optional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {bcmImageUrls.map(bcm => (
-                          <SelectItem key={bcm.name} value={bcm.value}>
-                            {bcm.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" disabled={isAddEventSubmitting}>
-                    Cancel
-                  </Button>
-                </DialogClose>
-                <Button type="submit" disabled={isAddEventSubmitting}>
-                  {isAddEventSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Add Event
-                </Button>
-              </DialogFooter>
-            </form>
+            {renderEventForm(false)}
           </DialogContent>
         </Dialog>
 
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Edit3 className="h-5 w-5 text-primary" />
-              Modify Existing Events
-            </CardTitle>
-            <CardDescription>Edit or update current calendar events.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">A list of existing events with options to edit each one will be displayed here.</p>
-             <Button className="w-full" disabled>
-              View/Edit Events (Coming Soon)
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Modify Event Card and Dialog */}
+        <Dialog open={isEditEventDialogOpen} onOpenChange={setIsEditEventDialogOpen}>
+            <Card className="shadow-md hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Edit3 className="h-5 w-5 text-primary" />
+                  Modify Existing Events
+                </CardTitle>
+                <CardDescription>Edit or update current calendar events.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {isLoadingEvents ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
+                    <span className="text-muted-foreground">Loading events...</span>
+                  </div>
+                ) : eventsError ? (
+                  <div className="text-destructive p-3 bg-destructive/10 border border-destructive rounded-md">
+                    <div className="flex items-center">
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      <span className="font-medium text-sm">Error</span>
+                    </div>
+                    <p className="text-xs mt-1">{eventsError}</p>
+                  </div>
+                ) : manageableEvents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No events available to modify.</p>
+                ) : (
+                  <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
+                    {manageableEvents.map((event) => (
+                      <div key={event.id} className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/50 transition-colors">
+                        <div>
+                          <p className="font-medium text-sm text-foreground">{event.title}</p>
+                          <p className="text-xs text-muted-foreground">{format(event.date as Date, "PPP")}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditEventClick(event)}
+                          className="text-primary hover:text-primary hover:bg-primary/10"
+                          aria-label={`Edit event ${event.title}`}
+                          disabled={isSubmitting}
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Event</DialogTitle>
+              <DialogDescription>
+                Modify the details of the event below.
+              </DialogDescription>
+            </DialogHeader>
+            {renderEventForm(true)}
+          </DialogContent>
+        </Dialog>
 
+        {/* Delete Events Card */}
         <Card className="shadow-md hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -378,28 +493,28 @@ export default function AdminDashboardPage() {
             <CardDescription>Remove events from the calendar.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {isLoadingDeleteList ? (
+            {isLoadingEvents ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
                 <span className="text-muted-foreground">Loading events...</span>
               </div>
-            ) : deleteListError ? (
+            ) : eventsError ? (
               <div className="text-destructive p-3 bg-destructive/10 border border-destructive rounded-md">
                 <div className="flex items-center">
                   <AlertTriangle className="mr-2 h-4 w-4" />
                   <span className="font-medium text-sm">Error</span>
                 </div>
-                <p className="text-xs mt-1">{deleteListError}</p>
+                <p className="text-xs mt-1">{eventsError}</p>
               </div>
-            ) : allEventsForDeletion.length === 0 ? (
+            ) : manageableEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">No events available to delete.</p>
             ) : (
               <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
-                {allEventsForDeletion.map((event) => (
+                {manageableEvents.map((event) => (
                   <div key={event.id} className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/50 transition-colors">
                     <div>
                       <p className="font-medium text-sm text-foreground">{event.title}</p>
-                      <p className="text-xs text-muted-foreground">{format(event.date, "PPP")}</p>
+                      <p className="text-xs text-muted-foreground">{format(event.date as Date, "PPP")}</p>
                     </div>
                     <Button
                       variant="ghost"
@@ -419,6 +534,7 @@ export default function AdminDashboardPage() {
         </Card>
       </div>
 
+      {/* Confirm Delete Dialog */}
       {eventToDelete && (
         <AlertDialog open={isConfirmDeleteDialogOpen} onOpenChange={setIsConfirmDeleteDialogOpen}>
           <AlertDialogContent>
@@ -447,3 +563,4 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
