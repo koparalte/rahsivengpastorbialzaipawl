@@ -4,11 +4,13 @@
 import type { User as FirebaseUser } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { auth, GoogleAuthProvider, signInWithPopup, firebaseSignOut, firebaseInitializationError } from '@/lib/firebase';
+import { auth, GoogleAuthProvider, signInWithPopup, firebaseSignOut, firebaseInitializationError, db } from '@/lib/firebase'; // Added db
+import { doc, getDoc } from "firebase/firestore"; // Added doc and getDoc
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
   user: FirebaseUser | null;
+  isAdmin: boolean; // New admin flag
   loading: boolean;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
@@ -19,6 +21,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false); // New admin state
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(firebaseInitializationError);
   const { toast } = useToast();
@@ -26,17 +29,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (firebaseInitializationError) {
       setLoading(false);
-      // authError is already set by useState
       return;
     }
     
-    if (!auth) {
+    if (!auth || !db) { // Check for db as well
         setLoading(false);
         if (!authError) { 
-          const msg = "Firebase Auth service is not available. This might be due to a configuration issue not caught during initial setup.";
+          const msg = `Firebase Auth service (${!auth ? 'Auth missing' : ''}${!db && !auth ? ', ' : ''}${!db ? 'Firestore missing' : ''}) is not available. This might be due to a configuration issue.`;
           setAuthError(msg);
           toast({
-            title: "Authentication Error",
+            title: "Authentication/Data Error",
             description: msg,
             variant: "destructive",
           });
@@ -46,8 +48,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setAuthError(null); 
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        // Check admin status
+        try {
+          const adminDocRef = doc(db, "admins", currentUser.uid);
+          const adminDocSnap = await getDoc(adminDocRef);
+          if (adminDocSnap.exists()) {
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
+          }
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+          setIsAdmin(false); // Default to not admin on error
+          // Optionally, inform user or log more detailed error
+          toast({
+            title: "Admin Check Error",
+            description: "Could not verify admin privileges.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        setIsAdmin(false); // Reset admin status on logout
+      }
       setLoading(false);
     }, (error) => {
       console.error("Auth state change error:", error);
@@ -58,11 +83,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: newError,
         variant: "destructive",
       });
+      setIsAdmin(false);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [toast, authError]);
+  }, [toast, authError]); // authError dependency is important here
 
   const loginWithGoogle = async () => {
     if (firebaseInitializationError) {
@@ -86,15 +112,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(true);
-    setAuthError(null); // Clear previous errors before attempting login
+    setAuthError(null); 
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
+      // Admin check will be triggered by onAuthStateChanged
       toast({
         title: "Login Successful",
         description: "You've successfully signed in with Google.",
       });
-      // authError is already null
     } catch (error: any) {
       console.error("Google login error (full object):", error); 
       let errorMessage = "Failed to sign in with Google. Please try again.";
@@ -132,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setAuthError(errorMessage);
     } finally {
-      setLoading(false);
+      // Loading will be set to false by onAuthStateChanged
     }
   };
 
@@ -156,15 +182,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthError(errMsg);
       return;
     }
-    setLoading(true);
-    setAuthError(null); // Clear previous errors
+    // No need to setLoading(true) here, onAuthStateChanged will handle it
+    setAuthError(null);
     try {
       await firebaseSignOut(auth);
+      // setUser(null) and setIsAdmin(false) will be handled by onAuthStateChanged
       toast({
         title: "Logged Out",
         description: "You have been successfully logged out.",
       });
-      // authError is already null
     } catch (error: any) {
       console.error("Logout error (full object):", error); 
       const errorMessage = error.message || "Failed to log out. Please try again.";
@@ -175,12 +201,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setAuthError(errorMessage);
     } finally {
-      setLoading(false);
+      // Loading will be set to false by onAuthStateChanged
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginWithGoogle, logout, authError }}>
+    <AuthContext.Provider value={{ user, isAdmin, loading, loginWithGoogle, logout, authError }}>
       {children}
     </AuthContext.Provider>
   );

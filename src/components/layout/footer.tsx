@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/auth-context';
 
 export function AppFooter() {
   const [currentYear, setCurrentYear] = useState<number | null>(null);
-  const { user, loading: authLoading, loginWithGoogle, logout, authError } = useAuth();
+  const { user, isAdmin, loading: authLoading, loginWithGoogle, logout, authError } = useAuth(); // Added isAdmin
 
   useEffect(() => {
     setCurrentYear(new Date().getFullYear());
@@ -35,7 +35,7 @@ export function AppFooter() {
           <>
             <span className="flex items-center text-xs sm:text-sm">
               <UserCircle className="mr-1.5 h-4 w-4" />
-              {user.displayName || user.email}
+              {user.displayName || user.email}{isAdmin ? ' (Admin)' : ''}
             </span>
             <Button variant="outline" size="sm" onClick={logout} className="shadow-sm hover:shadow-md transition-shadow">
               <LogOut className="mr-2 h-4 w-4" />
@@ -48,12 +48,14 @@ export function AppFooter() {
             Login with Google
           </Button>
         )}
-        <Link href="/admin/dashboard">
-          <Button variant="outline" size="sm" className="shadow-sm hover:shadow-md transition-shadow">
-            <Shield className="mr-2 h-4 w-4" />
-            Admin Panel
-          </Button>
-        </Link>
+        {user && isAdmin && ( // Only show Admin Panel button if user is logged in and is an admin
+          <Link href="/admin/dashboard">
+            <Button variant="outline" size="sm" className="shadow-sm hover:shadow-md transition-shadow">
+              <Shield className="mr-2 h-4 w-4" />
+              Admin Panel
+            </Button>
+          </Link>
+        )}
       </div>
     </footer>
   );
