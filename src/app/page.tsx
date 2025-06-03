@@ -114,7 +114,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (firebaseInitializationError) {
-      setEventsError(`Firebase Initialization Error: ${firebaseInitializationError}. Please ensure your Firebase configuration in .env.local is correct and the server has been restarted. Also, verify your Firestore 'calendarEvents' collection exists and security rules allow reads. Check the browser console and terminal for more specific errors (especially any lines starting with [Firestore Data Check] in the browser console).`);
+      setEventsError(
+        "Firebase Initialization Error: " +
+        firebaseInitializationError +
+        ". Please ensure your Firebase configuration in .env.local is correct and the server has been restarted. " +
+        "Also, verify your Firestore 'calendarEvents' collection exists and security rules allow reads. " +
+        "Check the browser console and terminal for more specific errors (especially any lines starting with [Firestore Data Check] in the browser console)."
+      );
       setIsLoadingEvents(false);
       setEvents([]);
       return;
@@ -138,22 +144,22 @@ export default function DashboardPage() {
         const eventDate = data.date instanceof Timestamp ? data.date.toDate() : new Date();
         
         if (!(data.date instanceof Timestamp)) {
-            console.warn(`[Firestore Data Check] Document with ID ${docSnap.id} in 'calendarEvents' collection has a 'date' field that is not a Firestore Timestamp. Using current date as fallback.`);
+            console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " in 'calendarEvents' collection has a 'date' field that is not a Firestore Timestamp. Using current date as fallback.");
         }
         let eventEndDate: Date | undefined = undefined;
         if (data.endDate) {
           if (data.endDate instanceof Timestamp) {
             eventEndDate = data.endDate.toDate();
           } else {
-            console.warn(`[Firestore Data Check] Document with ID ${docSnap.id} in 'calendarEvents' collection has an 'endDate' field that is not a Firestore Timestamp. It will be ignored.`);
+            console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " in 'calendarEvents' collection has an 'endDate' field that is not a Firestore Timestamp. It will be ignored.");
           }
         }
 
         if (!data.title) {
-            console.warn(`[Firestore Data Check] Document with ID ${docSnap.id} in 'calendarEvents' collection is missing the 'title' field.`);
+            console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " in 'calendarEvents' collection is missing the 'title' field.");
         }
         if (!data.description) {
-            console.warn(`[Firestore Data Check] Document with ID ${docSnap.id} in 'calendarEvents' collection is missing the 'description' field.`);
+            console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " in 'calendarEvents' collection is missing the 'description' field.");
         }
         
         let eventType: string | undefined = undefined;
@@ -161,10 +167,10 @@ export default function DashboardPage() {
           if (typeof data.type === 'string' && ['event1', 'event2'].includes(data.type)) {
             eventType = data.type;
           } else {
-            console.warn(`[Firestore Data Check] Document with ID ${docSnap.id} has an invalid 'type' field: '${data.type}'. Should be 'event1', 'event2', or left undefined for default. Event will use default styling.`);
+            console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " has an invalid 'type' field: '" + data.type + "'. Should be 'event1', 'event2', or left undefined for default. Event will use default styling.");
           }
         } else if (data.type === null || data.type === "") {
-            console.warn(`[Firestore Data Check] Document with ID ${docSnap.id} has an empty or null 'type' field. Event will use default styling.`);
+            console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " has an empty or null 'type' field. Event will use default styling.");
         }
 
         let eventImageUrl: string | undefined = undefined;
@@ -172,7 +178,7 @@ export default function DashboardPage() {
           if (typeof data.imageUrl === 'string') {
             eventImageUrl = data.imageUrl;
           } else {
-            console.warn(`[Firestore Data Check] Document with ID ${docSnap.id} has an 'imageUrl' field that is not a string.`);
+            console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " has an 'imageUrl' field that is not a string.");
           }
         }
 
@@ -189,9 +195,9 @@ export default function DashboardPage() {
       setEvents(fetchedEvents);
       setIsLoadingEvents(false);
       setEventsError(null); 
-    }, (err) => {
+    }, (err: any) => {
       console.error("Error fetching events from Firestore:", err);
-      setEventsError(`Failed to load events from Firestore: ${err.message}. Check browser console for details (e.g., permission errors, incorrect project config) and ensure your Firestore rules allow reads to the 'calendarEvents' collection. Also, check your terminal where 'npm run dev' is running for server-side errors.`);
+      setEventsError("Failed to load events from Firestore: " + err.message + ". Check browser console for details (e.g., permission errors, incorrect project config) and ensure your Firestore rules allow reads to the 'calendarEvents' collection. Also, check your terminal where 'npm run dev' is running for server-side errors.");
       setIsLoadingEvents(false);
       setEvents([]);
     });
@@ -407,7 +413,7 @@ export default function DashboardPage() {
                     <Link href="/members" passHref>
                       <Button
                         aria-label="View Members"
-                        className="rounded-full w-16 h-16 shadow-md hover:shadow-lg transform transition-transform duration-150 ease-in-out active:scale-95 bg-[#90D1CA] hover:bg-[#80C0B9] text-primary-foreground"
+                        className="rounded-full w-16 h-16 shadow-md hover:shadow-lg transform transition-transform duration-150 ease-in-out active:scale-95 bg-[#129990] hover:bg-[#0F7A73] text-primary-foreground"
                       >
                         <Users className="h-10 w-10" />
                       </Button>
@@ -471,7 +477,7 @@ export default function DashboardPage() {
                           </div>
                           <p className="text-sm mt-1">{eventsError}</p>
                           {(eventsError.toLowerCase().includes("firebase") || eventsError.toLowerCase().includes("firestore")) &&
-                            <p className="mt-2 text-xs">Please ensure your Firebase configuration in <code className="bg-muted px-1 py-0.5 rounded">.env.local</code> is correct and the server has been restarted. Also, verify your Firestore 'calendarEvents' collection exists, has the correct document structure (with a Timestamp field named `date`, an optional Timestamp field `endDate`, string fields `title`, `description`, an optional string field `type` which can be 'event1' or 'event2', and an optional string field `imageUrl`), and security rules allow reads. Check the browser console and terminal for more specific errors (especially any lines starting with [Firestore Data Check] in the browser console).</p>
+                            <p className="mt-2 text-xs">Please ensure your Firebase configuration in <code className="bg-muted px-1 py-0.5 rounded">.env.local</code> is correct and the server has been restarted. Also, verify your Firestore 'calendarEvents' collection exists, has the correct document structure (with a Timestamp field named \`date\`, an optional Timestamp field \`endDate\`, string fields \`title\`, \`description\`, an optional string field \`type\` which can be 'event1' or 'event2', and an optional string field \`imageUrl\`), and security rules allow reads. Check the browser console and terminal for more specific errors (especially any lines starting with [Firestore Data Check] in the browser console).</p>
                           }
                         </div>
                       ) : selectedDate ? (
@@ -614,3 +620,4 @@ export default function DashboardPage() {
     
 
     
+

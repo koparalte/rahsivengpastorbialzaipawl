@@ -38,7 +38,7 @@ export function AppHeader() {
             <Button
               size="sm"
               onClick={loginWithGoogle}
-              className="shadow-sm hover:shadow-md transition-shadow bg-[#90D1CA] hover:bg-[#80C0B9] text-primary-foreground"
+              className="shadow-sm hover:shadow-md transition-shadow bg-[#129990] hover:bg-[#0F7A73] text-primary-foreground"
             >
               <LogIn className="mr-2 h-4 w-4" />
               Login with Google
