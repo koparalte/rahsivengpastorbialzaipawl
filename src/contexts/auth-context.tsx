@@ -20,29 +20,30 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-  // Initialize authError with any error from firebase.ts
   const [authError, setAuthError] = useState<string | null>(firebaseInitializationError);
   const { toast } = useToast();
 
   useEffect(() => {
-    // If there was an initialization error from firebase.ts, don't try to use auth.
     if (firebaseInitializationError) {
       setLoading(false);
-      // authError is already set by useState, no need to set it again here
+      // authError is already set by useState
       return;
     }
     
-    // If auth object itself is null, but no explicit firebaseInitializationError was caught,
-    // this is also a critical issue.
     if (!auth) {
         setLoading(false);
-        if (!authError) { // Set error only if not already set by initialization
-          setAuthError("Firebase Auth service is not available. This might be due to a configuration issue not caught during initial setup.");
+        if (!authError) { 
+          const msg = "Firebase Auth service is not available. This might be due to a configuration issue not caught during initial setup.";
+          setAuthError(msg);
+          toast({
+            title: "Authentication Error",
+            description: msg,
+            variant: "destructive",
+          });
         }
         return;
     }
 
-    // Clear any previous auth error if we are proceeding with auth setup
     setAuthError(null); 
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -61,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [toast, authError]); // authError dependency added to potentially re-evaluate if it changes
+  }, [toast, authError]);
 
   const loginWithGoogle = async () => {
     if (firebaseInitializationError) {
@@ -85,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(true);
+    setAuthError(null); // Clear previous errors before attempting login
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
@@ -92,24 +94,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Login Successful",
         description: "You've successfully signed in with Google.",
       });
-      setAuthError(null); // Clear error on success
+      // authError is already null
     } catch (error: any) {
       console.error("Google login error (full object):", error); 
       let errorMessage = "Failed to sign in with Google. Please try again.";
       if (error.code) {
         switch (error.code) {
           case 'auth/popup-closed-by-user':
-            errorMessage = "Login cancelled: The Google Sign-In popup was closed by the user.";
+            errorMessage = "Login cancelled: The Google Sign-In popup was closed before completion.";
             break;
           case 'auth/cancelled-popup-request':
+            errorMessage = "Login cancelled: Multiple popup requests. Please try again.";
+            break;
           case 'auth/popup-blocked':
-            errorMessage = "Login cancelled: Popup was blocked or multiple popups were opened. Please allow popups for this site.";
+            errorMessage = "Login failed: Popup was blocked by the browser. Please allow popups for this site and try again.";
             break;
           case 'auth/unauthorized-domain':
-            errorMessage = "Login Error: This domain (localhost) is not authorized for Google Sign-In. Please double-check your Firebase project's Authentication settings under 'Authorized domains'. Ensure 'localhost' is listed exactly and that changes have propagated (can take a few minutes). Also, verify you are configuring the correct Firebase project in your .env.local file.";
+            errorMessage = "Login Error: This domain is not authorized for Google Sign-In. Please contact support or check Firebase project configuration if you are an admin.";
             break;
           case 'auth/operation-not-allowed':
-            errorMessage = "Login Error: Google Sign-In is not enabled for this Firebase project. Please enable it in the Firebase console (Authentication > Sign-in method).";
+            errorMessage = "Login Error: Google Sign-In is not enabled for this Firebase project. Please contact support.";
             break;
           case 'auth/network-request-failed':
             errorMessage = "Login Error: A network error occurred. Please check your internet connection and try again.";
@@ -153,13 +157,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     setLoading(true);
+    setAuthError(null); // Clear previous errors
     try {
       await firebaseSignOut(auth);
       toast({
         title: "Logged Out",
         description: "You have been successfully logged out.",
       });
-      setAuthError(null); // Clear error on success
+      // authError is already null
     } catch (error: any) {
       console.error("Logout error (full object):", error); 
       const errorMessage = error.message || "Failed to log out. Please try again.";
