@@ -24,10 +24,10 @@ const messagingSenderId = process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID;
 const appId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
 
 // Log the environment variables to help debug
-console.log("[Firebase Setup] NEXT_PUBLIC_FIREBASE_PROJECT_ID:", projectId);
-console.log("[Firebase Setup] NEXT_PUBLIC_FIREBASE_API_KEY:", apiKey ? "Loaded" : "MISSING or Empty");
-console.log("[Firebase Setup] NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:", authDomain ? "Loaded" : "MISSING or Empty");
-console.log("[Firebase Setup] NEXT_PUBLIC_FIREBASE_APP_ID:", appId ? "Loaded" : "MISSING or Empty");
+console.log("[Firebase Setup] Attempting to load NEXT_PUBLIC_FIREBASE_PROJECT_ID:", projectId);
+console.log("[Firebase Setup] Attempting to load NEXT_PUBLIC_FIREBASE_API_KEY:", apiKey ? "Found" : "MISSING or Empty");
+console.log("[Firebase Setup] Attempting to load NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:", authDomain ? "Found" : "MISSING or Empty");
+console.log("[Firebase Setup] Attempting to load NEXT_PUBLIC_FIREBASE_APP_ID:", appId ? "Found" : "MISSING or Empty");
 
 
 if (projectId && typeof projectId === 'string' && projectId.trim() !== '') {
@@ -40,29 +40,31 @@ if (projectId && typeof projectId === 'string' && projectId.trim() !== '') {
     appId: appId,
   };
 
-  // Log the actual config object being used for initialization
-  console.log("[Firebase Setup] Effective Firebase Config:", {
+  // CRITICAL LOG: This shows the config object JUST BEFORE initialization.
+  console.log("%c[Firebase Setup] CRITICAL CHECK - USING THIS CONFIG FOR INITIALIZATION:", "color: red; font-weight: bold;", {
     apiKey: firebaseConfig.apiKey ? 'Exists' : 'MISSING',
-    authDomain: firebaseConfig.authDomain,
-    projectId: firebaseConfig.projectId,
+    authDomain: firebaseConfig.authDomain || 'MISSING',
+    projectId: firebaseConfig.projectId, // This is the most important for auth/unauthorized-domain
     appId: firebaseConfig.appId ? 'Exists' : 'MISSING',
+    storageBucket: firebaseConfig.storageBucket || 'Not set',
+    messagingSenderId: firebaseConfig.messagingSenderId || 'Not set'
   });
 
   if (firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.appId) {
     try {
       if (getApps().length === 0) {
         app = initializeApp(firebaseConfig);
-        console.log("[Firebase Setup] Firebase App Initialized.");
+        console.log("[Firebase Setup] Firebase App Initialized successfully with Project ID:", firebaseConfig.projectId);
       } else {
         app = getApp();
-        console.log("[Firebase Setup] Existing Firebase App Retrieved.");
+        console.log("[Firebase Setup] Existing Firebase App Retrieved for Project ID:", app.options.projectId);
       }
       db = getFirestore(app);
       auth = getAuth(app); 
       console.log("[Firebase Setup] Firestore and Auth services obtained.");
     } catch (e: any) {
-      console.error("[Firebase Setup] Firebase initialization error:", e);
-      firebaseInitializationError = `Failed to initialize Firebase. Error: ${e.message}. Check console & .env.local. Ensure project ID (${projectId}) matches the project where domains are authorized.`;
+      console.error("[Firebase Setup] Firebase initialization error during initializeApp() or getAuth():", e);
+      firebaseInitializationError = `Failed to initialize Firebase services. Error: ${e.message}. Check console & .env.local. Ensure project ID ('${projectId}') from env matches the project where domains are authorized. Actual error: ${e.code || e.message}`;
       app = null;
       db = null;
       auth = null;
@@ -73,14 +75,14 @@ if (projectId && typeof projectId === 'string' && projectId.trim() !== '') {
     if (!firebaseConfig.authDomain) missingKeys.push("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN");
     if (!firebaseConfig.appId) missingKeys.push("NEXT_PUBLIC_FIREBASE_APP_ID");
     
-    firebaseInitializationError = `Firebase config incomplete. Missing/empty: ${missingKeys.join(', ')} in .env.local. Please check Firebase project settings. Project ID detected: ${projectId}.`;
+    firebaseInitializationError = `Firebase config incomplete for Project ID '${projectId}'. Missing/empty critical environment variables: ${missingKeys.join(', ')} in .env.local. Please check Firebase project settings.`;
     console.error("[Firebase Setup] Error:", firebaseInitializationError);
     app = null;
     db = null;
     auth = null;
   }
 } else {
-  firebaseInitializationError = "Firebase Project ID (NEXT_PUBLIC_FIREBASE_PROJECT_ID) is MISSING or empty in .env.local. This is critical. Please set it up and restart the server.";
+  firebaseInitializationError = "CRITICAL ERROR: Firebase Project ID (NEXT_PUBLIC_FIREBASE_PROJECT_ID) is MISSING or empty in .env.local. Firebase cannot be initialized. Please set it up and restart the server.";
   console.error("[Firebase Setup] Error:", firebaseInitializationError);
   app = null;
   db = null;
@@ -96,3 +98,4 @@ export {
   signInWithPopup,      
   firebaseSignOut       
 };
+
