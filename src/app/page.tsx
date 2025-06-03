@@ -407,7 +407,7 @@ export default function DashboardPage() {
                     <Link href="/members" passHref>
                       <Button
                         aria-label="View Members"
-                        className="rounded-full w-16 h-16 shadow-md hover:shadow-lg transform transition-transform duration-150 ease-in-out active:scale-95 bg-[#84AE92] hover:bg-[#709A7E] text-primary-foreground"
+                        className="rounded-full w-16 h-16 shadow-md hover:shadow-lg transform transition-transform duration-150 ease-in-out active:scale-95 bg-[#90D1CA] hover:bg-[#80C0B9] text-primary-foreground"
                       >
                         <Users className="h-10 w-10" />
                       </Button>
