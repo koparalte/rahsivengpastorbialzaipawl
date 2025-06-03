@@ -46,7 +46,7 @@ const eventFormSchema = z.object({
   date: z.date({ required_error: "Date is required." }),
   endDate: z.date().optional(),
   type: z.string().optional(),
-  imageUrl: z.string().url("Invalid URL").optional().or(z.literal('')),
+  imageUrl: z.string().url("Invalid URL, ensure it's a full URL.").optional().or(z.literal('')),
 }).refine(data => {
   if (data.endDate && data.date > data.endDate) {
     return false;
@@ -64,6 +64,15 @@ interface EventItem {
   title: string;
   date: Date;
 }
+
+const bcmImageUrls = [
+  { name: "None", value: "" },
+  { name: "BCM Rahsiveng", value: "https://drive.google.com/uc?export=download&id=1krFnm-8fErnJnM5dPKX85lQHHmgzyPms" },
+  { name: "BCM Moria", value: "https://drive.google.com/uc?export=download&id=1XYASWYTbjAx26o5rQl-6oB525C0dRH6f" },
+  { name: "BCM Venghlun", value: "https://drive.google.com/uc?export=download&id=1XCf90Hbx0gexMJfWk1RVzcMIYkKg4L2b" },
+  { name: "BCM Bethel", value: "https://drive.google.com/uc?export=download&id=1KUneQwWamPFyJSHUbr-xVADfeDN80oO_" },
+  { name: "BCM Sazaikawn", value: "https://drive.google.com/uc?export=download&id=1VlXtBN7CUT4JfcYOHR-p-RNRcj6BKvH_" },
+];
 
 export default function AdminDashboardPage() {
   const [isAddEventDialogOpen, setIsAddEventDialogOpen] = useState(false);
@@ -307,7 +316,24 @@ export default function AdminDashboardPage() {
               </div>
               <div>
                 <Label htmlFor="imageUrl" className="flex items-center gap-1 mb-1"><ImageIcon className="h-4 w-4" />Image URL (Optional)</Label>
-                <Input id="imageUrl" {...form.register("imageUrl")} placeholder="https://example.com/image.png" />
+                <Controller
+                  control={form.control}
+                  name="imageUrl"
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <SelectTrigger id="imageUrl">
+                        <SelectValue placeholder="Select BCM Image (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bcmImageUrls.map(bcm => (
+                          <SelectItem key={bcm.name} value={bcm.value}>
+                            {bcm.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {form.formState.errors.imageUrl && <p className="text-xs text-destructive mt-1">{form.formState.errors.imageUrl.message}</p>}
               </div>
               <DialogFooter>
