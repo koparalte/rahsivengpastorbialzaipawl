@@ -5,24 +5,24 @@
 
 @layer base {
   :root {
-    --background: 160 35% 65%; /* #98D2C0 */
-    --foreground: 160 15% 20%;   /* Dark tealish gray for text */
-    --card: 160 30% 96%;           /* Very light, almost white with a hint of green for cards */
-    --card-foreground: 160 15% 20%; /* Dark tealish gray text on cards */
-    --popover: 160 30% 96%;
-    --popover-foreground: 160 15% 20%;
+    --background: 102 67% 89%; /* #DDF6D2 */
+    --foreground: 102 30% 15%;   /* Dark desaturated greenish-yellow for text */
+    --card: 102 45% 95%;           /* Very light, less saturated greenish-yellow for cards */
+    --card-foreground: 102 30% 15%; /* Dark desaturated greenish-yellow text on cards */
+    --popover: 102 45% 95%;
+    --popover-foreground: 102 30% 15%;
     --primary: 217 91% 59%;      /* Original Primary Blue - #4285F4 */
     --primary-foreground: 0 0% 98%; /* White */
-    --secondary: 160 30% 88%;     /* Light gray with a hint of the theme color */
-    --secondary-foreground: 160 15% 25%; /* Darker text on secondary */
-    --muted: 160 25% 92%;       /* Lighter, desaturated version for muted backgrounds */
-    --muted-foreground: 160 15% 45%; /* Lighter dark text for muted bg */
+    --secondary: 102 50% 92%;     /* Lighter greenish-yellow */
+    --secondary-foreground: 102 30% 25%; /* Darker text on secondary */
+    --muted: 102 40% 94%;       /* Very light, desaturated greenish-yellow for muted backgrounds */
+    --muted-foreground: 102 25% 45%; /* Medium-dark text for muted bg */
     --accent: 43 90% 48%;        /* Original Accent Orange - #F4B400 */
     --accent-foreground: 0 0% 10%;   /* Dark text on accent */
     --destructive: 0 84.2% 60.2%; /* Standard red */
     --destructive-foreground: 0 0% 98%;
-    --border: 160 30% 60%;       /* Border color, a bit darker than background */
-    --input: 160 30% 65%;           /* Input backgrounds */
+    --border: 102 30% 70%;       /* Border color, a desaturated greenish-yellow */
+    --input: 102 40% 92%;           /* Input backgrounds, similar to muted */
     --ring: 217 91% 59%;         /* Original Primary for focus rings */
     --radius: 0.5rem;
 
@@ -33,13 +33,13 @@
     --chart-5: 0 80% 65%;   /* A red/pink */
 
     /* Sidebar specific colors (adjusted for new light background) */
-    --sidebar-background: 160 35% 65%; /* Slightly darker than main background */
-    --sidebar-foreground: 160 15% 15%;   /* Dark text for sidebar */
+    --sidebar-background: 102 67% 89%; /* Same as main background */
+    --sidebar-foreground: 102 30% 15%;   /* Dark text for sidebar */
     --sidebar-primary: 217 91% 59%;      /* Original Primary */
     --sidebar-primary-foreground: 0 0% 98%; /* White */
-    --sidebar-accent: 160 35% 58%;         /* Darker shade for hover/active states */
+    --sidebar-accent: 102 60% 80%;         /* Darker/more saturated shade for hover/active states */
     --sidebar-accent-foreground: 0 0% 98%; /* White for contrast on sidebar accent */
-    --sidebar-border: 160 30% 55%;       /* Border for sidebar elements */
+    --sidebar-border: 102 30% 65%;       /* Border for sidebar elements */
     --sidebar-ring: 217 91% 59%;         /* Original Primary for focus rings */
   }
 
@@ -185,3 +185,4 @@
    background-color: hsl(var(--primary-foreground)); /* Contrast for selected blue dot on red text day */
 }
 
+    
