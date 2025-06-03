@@ -11,7 +11,7 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
-      <div className="container flex h-16 items-center justify-end px-4 md:px-6">
+      <div className="container flex h-16 items-center justify-start px-4 md:px-6"> {/* Changed justify-end to justify-start */}
         <div className="flex items-center gap-2">
           {authError && !user && (
             <span className="text-xs text-destructive mr-2 text-center sm:text-right">
