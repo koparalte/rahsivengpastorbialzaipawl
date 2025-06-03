@@ -2,13 +2,19 @@
 
 import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import { 
+  getAuth, 
+  type Auth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut as firebaseSignOut // Renamed to avoid conflict
+} from "firebase/auth";
 
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
+let auth: Auth | null = null;
 let firebaseInitializationError: string | null = null;
 
-// Check if NEXT_PUBLIC_FIREBASE_PROJECT_ID is available. 
-// This is crucial for Firebase to initialize.
 const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
 if (projectId && typeof projectId === 'string' && projectId.trim() !== '') {
@@ -19,10 +25,8 @@ if (projectId && typeof projectId === 'string' && projectId.trim() !== '') {
     storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    // measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID, // Optional
   };
 
-  // Ensure all required config values are present (optional: add more checks if needed)
   if (firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.appId) {
     try {
       if (getApps().length === 0) {
@@ -31,22 +35,33 @@ if (projectId && typeof projectId === 'string' && projectId.trim() !== '') {
         app = getApp();
       }
       db = getFirestore(app);
+      auth = getAuth(app); // Initialize Auth
     } catch (e: any) {
       console.error("Firebase initialization error:", e);
       firebaseInitializationError = e.message || "Failed to initialize Firebase. Check your configuration values in .env.local.";
-      // Ensure app and db are null if initialization failed
       app = null;
       db = null;
+      auth = null;
     }
   } else {
     firebaseInitializationError = "One or more Firebase configuration values (apiKey, authDomain, appId) are missing in .env.local. Please check your Firebase project settings.";
     app = null;
     db = null;
+    auth = null;
   }
 } else {
   firebaseInitializationError = "Firebase Project ID (NEXT_PUBLIC_FIREBASE_PROJECT_ID) is not configured. Please set it up in your .env.local file and restart the server.";
   app = null;
   db = null;
+  auth = null;
 }
 
-export { app, db, firebaseInitializationError };
+export { 
+  app, 
+  db, 
+  auth, // Export auth
+  firebaseInitializationError, 
+  GoogleAuthProvider, // Export for use in context
+  signInWithPopup,      // Export for use in context
+  firebaseSignOut       // Export for use in context
+};

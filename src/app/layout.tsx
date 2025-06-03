@@ -3,6 +3,7 @@ import type {Metadata} from 'next';
 import { Roboto } from 'next/font/google'; // Import Roboto
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from '@/contexts/auth-context'; // Import AuthProvider
 
 // Configure Roboto
 const roboto = Roboto({
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   description: 'Zaipawl info',
   manifest: '/manifest.json',
   themeColor: '#98D2C0',
-  icons: '/app_icon.png', // Added this line to reference the new icon
+  icons: '/app_icon.png',
 };
 
 export default function RootLayout({
@@ -27,10 +28,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* Apply Roboto font variable to the body */}
       <body className={`${roboto.variable} antialiased`}>
-        {children}
-        <Toaster />
+        <AuthProvider> {/* Wrap children with AuthProvider */}
+          {children}
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );
