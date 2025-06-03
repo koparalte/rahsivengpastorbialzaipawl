@@ -40,13 +40,15 @@ import React, { useState, useTransition, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 
+const NO_IMAGE_SELECTED_VALUE = "--NO_IMAGE_SELECTED--";
+
 const eventFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   date: z.date({ required_error: "Date is required." }),
   endDate: z.date().optional(),
   type: z.string().optional(),
-  imageUrl: z.string().url("Invalid URL, ensure it's a full URL.").optional().or(z.literal('')),
+  imageUrl: z.string().url("Invalid URL, ensure it's a full URL.").optional().or(z.literal('')).or(z.literal(NO_IMAGE_SELECTED_VALUE)),
 }).refine(data => {
   if (data.endDate && data.date > data.endDate) {
     return false;
@@ -66,7 +68,7 @@ interface EventItem {
 }
 
 const bcmImageUrls = [
-  { name: "None", value: "" },
+  { name: "None", value: NO_IMAGE_SELECTED_VALUE },
   { name: "BCM Rahsiveng", value: "https://drive.google.com/uc?export=download&id=1krFnm-8fErnJnM5dPKX85lQHHmgzyPms" },
   { name: "BCM Moria", value: "https://drive.google.com/uc?export=download&id=1XYASWYTbjAx26o5rQl-6oB525C0dRH6f" },
   { name: "BCM Venghlun", value: "https://drive.google.com/uc?export=download&id=1XCf90Hbx0gexMJfWk1RVzcMIYkKg4L2b" },
@@ -94,8 +96,8 @@ export default function AdminDashboardPage() {
       description: "",
       date: undefined,
       endDate: undefined,
-      type: "", 
-      imageUrl: "",
+      type: "",
+      imageUrl: NO_IMAGE_SELECTED_VALUE,
     },
   });
 
@@ -119,10 +121,10 @@ export default function AdminDashboardPage() {
         if (data.endDate) {
           eventData.endDate = Timestamp.fromDate(data.endDate);
         }
-        if (data.type && data.type !== "--") { 
+        if (data.type && data.type !== "--") {
           eventData.type = data.type;
         }
-        if (data.imageUrl && data.imageUrl.trim() !== "") {
+        if (data.imageUrl && data.imageUrl !== NO_IMAGE_SELECTED_VALUE && data.imageUrl.trim() !== "") {
           eventData.imageUrl = data.imageUrl;
         }
 
@@ -305,7 +307,7 @@ export default function AdminDashboardPage() {
                         <SelectValue placeholder="Select event type (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="--">Default</SelectItem> 
+                        <SelectItem value="--">Default</SelectItem>
                         <SelectItem value="event1">Rawngbawlna</SelectItem>
                         <SelectItem value="event2">Hla Zir</SelectItem>
                       </SelectContent>
@@ -320,7 +322,7 @@ export default function AdminDashboardPage() {
                   control={form.control}
                   name="imageUrl"
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select onValueChange={field.onChange} value={field.value || NO_IMAGE_SELECTED_VALUE}>
                       <SelectTrigger id="imageUrl">
                         <SelectValue placeholder="Select BCM Image (optional)" />
                       </SelectTrigger>
