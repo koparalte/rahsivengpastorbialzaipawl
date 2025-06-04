@@ -19,7 +19,7 @@ export function EventCard({ title, description, imageUrl, displayDate }: EventCa
   return (
     <Card
       className={cn(
-        "hover:shadow-md transition-shadow relative overflow-hidden w-full h-full flex flex-col"
+        "hover:shadow-md transition-shadow relative overflow-hidden w-full flex flex-col" // Removed h-full
       )}
     >
       {hasImage && (
@@ -69,3 +69,4 @@ export function EventCard({ title, description, imageUrl, displayDate }: EventCa
     </Card>
   );
 }
+
