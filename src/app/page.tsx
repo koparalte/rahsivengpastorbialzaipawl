@@ -235,34 +235,26 @@ export default function DashboardPage() {
   }, [events, currentMonth]);
 
 
-  const allEventDays = useMemo(() => {
+  const distinctEventStartDates = useMemo(() => {
     if (!events || events.length === 0) return [];
-    const daySet = new Set<number>();
+    const startDateSet = new Set<number>();
     events.forEach(event => {
-      let currentDate = startOfDay(event.date);
-      const eventEndDate = event.endDate ? startOfDay(event.endDate) : currentDate; 
-      
-      const loopEndDate = eventEndDate >= currentDate ? eventEndDate : currentDate;
-
-      while (currentDate <= loopEndDate) {
-        daySet.add(currentDate.getTime());
-        currentDate = addDays(currentDate, 1);
-      }
+      startDateSet.add(startOfDay(event.date).getTime());
     });
-    return Array.from(daySet).map(time => new Date(time)).sort((a, b) => a.getTime() - b.getTime());
+    return Array.from(startDateSet).map(time => new Date(time)).sort((a, b) => a.getTime() - b.getTime());
   }, [events]);
 
   useEffect(() => {
-    if (!selectedDate || allEventDays.length === 0) {
+    if (!selectedDate || distinctEventStartDates.length === 0) {
       setCanGoToPreviousEventDay(false);
-      setCanGoToNextEventDay(allEventDays.length > 0); 
+      setCanGoToNextEventDay(distinctEventStartDates.length > 0); 
       return;
     }
     const currentDayStart = startOfDay(selectedDate);
 
     let prevExists = false;
-    for (let i = allEventDays.length - 1; i >= 0; i--) {
-      if (startOfDay(allEventDays[i]).getTime() < currentDayStart.getTime()) {
+    for (let i = distinctEventStartDates.length - 1; i >= 0; i--) {
+      if (startOfDay(distinctEventStartDates[i]).getTime() < currentDayStart.getTime()) {
         prevExists = true;
         break;
       }
@@ -270,7 +262,7 @@ export default function DashboardPage() {
     setCanGoToPreviousEventDay(prevExists);
 
     let nextExists = false;
-    for (const eventDay of allEventDays) {
+    for (const eventDay of distinctEventStartDates) {
       if (startOfDay(eventDay).getTime() > currentDayStart.getTime()) {
         nextExists = true;
         break;
@@ -278,16 +270,17 @@ export default function DashboardPage() {
     }
     setCanGoToNextEventDay(nextExists);
 
-  }, [selectedDate, allEventDays]);
+  }, [selectedDate, distinctEventStartDates]);
 
 
   const handlePreviousEventDay = () => {
-    if (!selectedDate || allEventDays.length === 0) return;
+    if (!selectedDate || distinctEventStartDates.length === 0) return;
     const currentDayStart = startOfDay(selectedDate);
     let prevEventD: Date | undefined = undefined;
-    for (let i = allEventDays.length - 1; i >= 0; i--) {
-      if (startOfDay(allEventDays[i]).getTime() < currentDayStart.getTime()) {
-        prevEventD = allEventDays[i];
+    // Find the latest event start date that is before the current selected date's start
+    for (let i = distinctEventStartDates.length - 1; i >= 0; i--) {
+      if (startOfDay(distinctEventStartDates[i]).getTime() < currentDayStart.getTime()) {
+        prevEventD = distinctEventStartDates[i];
         break;
       }
     }
@@ -298,16 +291,17 @@ export default function DashboardPage() {
   };
 
   const handleNextEventDay = () => {
-    if (!selectedDate && allEventDays.length > 0) { 
-        setSelectedDate(allEventDays[0]);
-        setCurrentMonth(allEventDays[0]);
+    if (!selectedDate && distinctEventStartDates.length > 0) { 
+        setSelectedDate(distinctEventStartDates[0]);
+        setCurrentMonth(distinctEventStartDates[0]);
         return;
     }
-    if (!selectedDate || allEventDays.length === 0) return;
+    if (!selectedDate || distinctEventStartDates.length === 0) return;
 
     const currentDayStart = startOfDay(selectedDate);
     let nextEventD: Date | undefined = undefined;
-    for (const eventDay of allEventDays) {
+    // Find the earliest event start date that is after the current selected date's start
+    for (const eventDay of distinctEventStartDates) {
       if (startOfDay(eventDay).getTime() > currentDayStart.getTime()) {
         nextEventD = eventDay;
         break;
@@ -394,12 +388,12 @@ export default function DashboardPage() {
 
           <div className="grid gap-4 grid-cols-2">
             <SummaryCard 
-              title={`Rawngbawlna ${isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : ''}`}
+              title={"Rawngbawlna " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
               value={eventType1Count.toString()}
               icon={CalendarCheck}
             />
             <SummaryCard 
-              title={`Hla zir ${isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : ''}`}
+              title={"Hla zir " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
               value={eventType2Count.toString()}
               icon={CalendarClock}
             />
@@ -633,4 +627,5 @@ export default function DashboardPage() {
     
 
     
+
 
