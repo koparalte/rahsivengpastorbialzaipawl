@@ -30,6 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch"; // Added Switch import
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -91,6 +92,7 @@ export default function AdminDashboardPage() {
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [isDeletingEvent, startDeleteEventTransition] = useTransition();
 
+  const [showPastEventsToModify, setShowPastEventsToModify] = useState(false); // State for the toggle switch
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -216,7 +218,7 @@ export default function AdminDashboardPage() {
           imageUrl: data.imageUrl || NO_IMAGE_SELECTED_VALUE,
         };
       });
-      setManageableEvents(fetchedEvents); // No sort here, will be sorted in useMemo for upcoming/past
+      setManageableEvents(fetchedEvents); 
       setIsLoadingEvents(false);
       setEventsError(null);
     }, (error) => {
@@ -505,16 +507,32 @@ export default function AdminDashboardPage() {
                 ) : manageableEvents.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">No events available to modify.</p>
                 ) : (
-                  <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
-                    <div>
-                      <h4 className="text-md font-semibold mb-2 text-primary">Upcoming Events</h4>
-                      {renderEventList(upcomingEvents, 'edit')}
+                  <>
+                    <div className="flex items-center space-x-2 py-2">
+                      <Switch
+                        id="toggle-past-modify"
+                        checked={showPastEventsToModify}
+                        onCheckedChange={setShowPastEventsToModify}
+                        aria-label={showPastEventsToModify ? "Switch to show upcoming events" : "Switch to show past events"}
+                      />
+                      <Label htmlFor="toggle-past-modify" className="text-sm cursor-pointer">
+                        {showPastEventsToModify ? "Showing Past Events" : "Showing Upcoming Events"}
+                      </Label>
                     </div>
-                    <div>
-                      <h4 className="text-md font-semibold mb-2 text-primary mt-4">Past Events</h4>
-                      {renderEventList(pastEvents, 'edit')}
+                    <div className="max-h-80 overflow-y-auto space-y-4 pr-2"> {/* Adjusted max-h */}
+                      {showPastEventsToModify ? (
+                        <div>
+                          <h4 className="text-md font-semibold mb-2 text-primary">Past Events</h4>
+                          {renderEventList(pastEvents, 'edit')}
+                        </div>
+                      ) : (
+                        <div>
+                          <h4 className="text-md font-semibold mb-2 text-primary">Upcoming Events</h4>
+                          {renderEventList(upcomingEvents, 'edit')}
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  </>
                 )}
               </CardContent>
             </Card>
