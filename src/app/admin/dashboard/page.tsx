@@ -30,7 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch"; // Added Switch import
+import { Switch } from "@/components/ui/switch";
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -92,7 +92,7 @@ export default function AdminDashboardPage() {
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [isDeletingEvent, startDeleteEventTransition] = useTransition();
 
-  const [showPastEventsToModify, setShowPastEventsToModify] = useState(false); // State for the toggle switch
+  const [showPastEventsToModify, setShowPastEventsToModify] = useState(false);
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -514,12 +514,13 @@ export default function AdminDashboardPage() {
                         checked={showPastEventsToModify}
                         onCheckedChange={setShowPastEventsToModify}
                         aria-label={showPastEventsToModify ? "Switch to show upcoming events" : "Switch to show past events"}
+                        className="data-[state=unchecked]:bg-border"
                       />
                       <Label htmlFor="toggle-past-modify" className="text-sm cursor-pointer">
                         {showPastEventsToModify ? "Showing Past Events" : "Showing Upcoming Events"}
                       </Label>
                     </div>
-                    <div className="max-h-80 overflow-y-auto space-y-4 pr-2"> {/* Adjusted max-h */}
+                    <div className="max-h-80 overflow-y-auto space-y-4 pr-2">
                       {showPastEventsToModify ? (
                         <div>
                           <h4 className="text-md font-semibold mb-2 text-primary">Past Events</h4>
@@ -617,3 +618,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
