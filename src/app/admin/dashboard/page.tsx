@@ -335,14 +335,14 @@ export default function AdminDashboardPage() {
         </div>
       </div>
       <div>
-        <Label htmlFor="type" className="flex items-center gap-1 mb-1"><Type className="h-4 w-4" />Event Type (Optional)</Label>
+        <Label htmlFor="type" className="flex items-center gap-1 mb-1"><Type className="h-4 w-4" />Activity Type (Optional)</Label>
         <Controller
           control={form.control}
           name="type"
           render={({ field }) => (
             <Select onValueChange={field.onChange} value={field.value || DEFAULT_EVENT_TYPE_VALUE}>
               <SelectTrigger id="type">
-                <SelectValue placeholder="Select event type (optional)" />
+                <SelectValue placeholder="Select activity type (optional)" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={DEFAULT_EVENT_TYPE_VALUE}>Default</SelectItem>
