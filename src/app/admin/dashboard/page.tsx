@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, PlusCircle, Edit3, Trash2, LayoutDashboard, Calendar as CalendarIcon, Image as ImageIcon, Type, FileText, ListChecks, AlertTriangle, Loader2, Package } from 'lucide-react'; // Added Package icon
+import { ArrowLeft, PlusCircle, Edit3, Trash2, LayoutDashboard, Calendar as CalendarIcon, Image as ImageIcon, Type, FileText, ListChecks, AlertTriangle, Loader2, Package } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Dialog,
@@ -39,18 +39,17 @@ import { collection, addDoc, Timestamp, getDocs, deleteDoc, doc, onSnapshot, Que
 import { useToast } from '@/hooks/use-toast';
 import React, { useState, useTransition, useEffect, useMemo } from 'react';
 import { format, startOfDay } from 'date-fns';
-import { Badge } from '@/components/ui/badge'; // Import Badge component
+import { Badge } from '@/components/ui/badge';
 
 const NO_IMAGE_SELECTED_VALUE = "--NO_IMAGE_SELECTED--";
-const DEFAULT_EVENT_TYPE_VALUE = "--";
 
 const eventFormSchema = z.object({
   id: z.string().optional(), // For editing
+  type: z.enum(['event1', 'event2', 'event3'], { required_error: "Activity type is required." }),
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   date: z.date({ required_error: "Date is required." }),
   endDate: z.date().optional(),
-  type: z.string().optional(),
   imageUrl: z.string().url("Invalid URL, ensure it's a full URL.").optional().or(z.literal('')).or(z.literal(NO_IMAGE_SELECTED_VALUE)),
 }).refine(data => {
   if (data.endDate && data.date > data.endDate) {
@@ -103,7 +102,7 @@ export default function AdminDashboardPage() {
       description: "",
       date: undefined,
       endDate: undefined,
-      type: DEFAULT_EVENT_TYPE_VALUE,
+      type: undefined, // Set to undefined as it's mandatory
       imageUrl: NO_IMAGE_SELECTED_VALUE,
     },
   });
@@ -140,6 +139,7 @@ export default function AdminDashboardPage() {
           title: data.title,
           description: data.description,
           date: Timestamp.fromDate(data.date as Date),
+          type: data.type, // Type is now mandatory and will be one of 'event1', 'event2', 'event3'
           updatedAt: serverTimestamp(),
         };
 
@@ -147,12 +147,6 @@ export default function AdminDashboardPage() {
           eventData.endDate = Timestamp.fromDate(data.endDate);
         } else {
           eventData.endDate = null;
-        }
-
-        if (data.type && data.type !== DEFAULT_EVENT_TYPE_VALUE) {
-          eventData.type = data.type;
-        } else {
-           eventData.type = null;
         }
 
         if (data.imageUrl && data.imageUrl !== NO_IMAGE_SELECTED_VALUE && data.imageUrl.trim() !== "") {
@@ -183,7 +177,7 @@ export default function AdminDashboardPage() {
             description: "",
             date: undefined,
             endDate: undefined,
-            type: DEFAULT_EVENT_TYPE_VALUE,
+            type: undefined,
             imageUrl: NO_IMAGE_SELECTED_VALUE
         });
         setCurrentEvent(null);
@@ -216,7 +210,7 @@ export default function AdminDashboardPage() {
           description: data.description || "",
           date: data.date instanceof Timestamp ? data.date.toDate() : new Date(),
           endDate: data.endDate instanceof Timestamp ? data.endDate.toDate() : undefined,
-          type: data.type || DEFAULT_EVENT_TYPE_VALUE,
+          type: data.type as EventFormValues['type'] || undefined, // Ensure type matches or is undefined
           imageUrl: data.imageUrl || NO_IMAGE_SELECTED_VALUE,
         };
       });
@@ -240,7 +234,7 @@ export default function AdminDashboardPage() {
       description: event.description,
       date: event.date,
       endDate: event.endDate,
-      type: event.type || DEFAULT_EVENT_TYPE_VALUE,
+      type: event.type, // type will be one of 'event1', 'event2', 'event3' or undefined
       imageUrl: event.imageUrl || NO_IMAGE_SELECTED_VALUE,
     });
     setIsEditEventDialogOpen(true);
@@ -253,7 +247,7 @@ export default function AdminDashboardPage() {
         description: "",
         date: undefined,
         endDate: undefined,
-        type: DEFAULT_EVENT_TYPE_VALUE,
+        type: undefined,
         imageUrl: NO_IMAGE_SELECTED_VALUE
     });
     setIsAddEventDialogOpen(true);
@@ -289,16 +283,51 @@ export default function AdminDashboardPage() {
     });
   };
 
+  const watchedActivityType = form.watch("type");
+  let titlePlaceholder = "Title";
+  let descriptionPlaceholder = "Description";
+
+  if (watchedActivityType === 'event1') {
+    titlePlaceholder = "Rawngbawlna hmun";
+    descriptionPlaceholder = "Programme hming";
+  } else if (watchedActivityType === 'event2') {
+    titlePlaceholder = "Hla zirna hmun";
+    descriptionPlaceholder = "Tantu Hming";
+  } else if (watchedActivityType === 'event3') {
+    titlePlaceholder = "Activity Hming";
+    descriptionPlaceholder = "A Hmun";
+  }
+
   const renderEventForm = (isEditing: boolean) => (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+       <div>
+        <Label htmlFor="type" className="flex items-center gap-1 mb-1"><Type className="h-4 w-4" />Activity Type</Label>
+        <Controller
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <Select onValueChange={field.onChange} value={field.value || undefined}>
+              <SelectTrigger id="type">
+                <SelectValue placeholder="Select activity type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="event1">Rawngbawlna</SelectItem>
+                <SelectItem value="event2">Hla Zir</SelectItem>
+                <SelectItem value="event3">Others</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {form.formState.errors.type && <p className="text-xs text-destructive mt-1">{form.formState.errors.type.message}</p>}
+      </div>
       <div>
         <Label htmlFor="title" className="flex items-center gap-1 mb-1"><FileText className="h-4 w-4" />Title</Label>
-        <Input id="title" {...form.register("title")} placeholder="Event Title" />
+        <Input id="title" {...form.register("title")} placeholder={titlePlaceholder} />
         {form.formState.errors.title && <p className="text-xs text-destructive mt-1">{form.formState.errors.title.message}</p>}
       </div>
       <div>
         <Label htmlFor="description" className="flex items-center gap-1 mb-1"><FileText className="h-4 w-4" />Description</Label>
-        <Textarea id="description" {...form.register("description")} placeholder="Event Description" />
+        <Textarea id="description" {...form.register("description")} placeholder={descriptionPlaceholder} />
         {form.formState.errors.description && <p className="text-xs text-destructive mt-1">{form.formState.errors.description.message}</p>}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -333,27 +362,6 @@ export default function AdminDashboardPage() {
           />
           {form.formState.errors.endDate && <p className="text-xs text-destructive mt-1">{form.formState.errors.endDate.message}</p>}
         </div>
-      </div>
-      <div>
-        <Label htmlFor="type" className="flex items-center gap-1 mb-1"><Type className="h-4 w-4" />Activity Type (Optional)</Label>
-        <Controller
-          control={form.control}
-          name="type"
-          render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value || DEFAULT_EVENT_TYPE_VALUE}>
-              <SelectTrigger id="type">
-                <SelectValue placeholder="Select activity type (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={DEFAULT_EVENT_TYPE_VALUE}>Default</SelectItem>
-                <SelectItem value="event1">Rawngbawlna</SelectItem>
-                <SelectItem value="event2">Hla Zir</SelectItem>
-                <SelectItem value="event3">Others</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-        />
-        {form.formState.errors.type && <p className="text-xs text-destructive mt-1">{form.formState.errors.type.message}</p>}
       </div>
       <div>
         <Label htmlFor="imageUrl" className="flex items-center gap-1 mb-1"><ImageIcon className="h-4 w-4" />Image (Optional)</Label>
@@ -391,14 +399,14 @@ export default function AdminDashboardPage() {
     </form>
   );
 
-  const getEventTypeLabelAndVariant = (type?: string): { label: string; variant: "default" | "secondary" | "destructive" } => {
+  const getEventTypeLabelAndVariant = (type?: EventFormValues['type']): { label: string; variant: "default" | "secondary" | "destructive" } => {
     switch (type) {
       case 'event1':
         return { label: "Rawngbawlna", variant: "destructive" };
       case 'event2':
-        return { label: "Hla Zir", variant: "default" }; // Primary/Default color for Hla Zir
+        return { label: "Hla Zir", variant: "default" };
       case 'event3':
-        return { label: "Others", variant: "secondary" }; // Secondary for Others
+        return { label: "Others", variant: "secondary" };
       default:
         return { label: "Default", variant: "secondary" };
     }
