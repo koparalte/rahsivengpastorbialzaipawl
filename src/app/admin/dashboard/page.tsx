@@ -93,6 +93,7 @@ export default function AdminDashboardPage() {
   const [isDeletingEvent, startDeleteEventTransition] = useTransition();
 
   const [showPastEventsToModify, setShowPastEventsToModify] = useState(false);
+  const [showPastEventsToDelete, setShowPastEventsToDelete] = useState(false);
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -574,16 +575,33 @@ export default function AdminDashboardPage() {
             ) : manageableEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">No events available to delete.</p>
             ) : (
-              <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
-                 <div>
+              <>
+                <div className="flex items-center space-x-2 py-2">
+                  <Switch
+                    id="toggle-past-delete"
+                    checked={showPastEventsToDelete}
+                    onCheckedChange={setShowPastEventsToDelete}
+                    aria-label={showPastEventsToDelete ? "Switch to show upcoming events for deletion" : "Switch to show past events for deletion"}
+                    className="data-[state=unchecked]:bg-border"
+                  />
+                  <Label htmlFor="toggle-past-delete" className="text-sm cursor-pointer">
+                    {showPastEventsToDelete ? "Showing Past Events" : "Showing Upcoming Events"}
+                  </Label>
+                </div>
+                <div className="max-h-80 overflow-y-auto space-y-4 pr-2">
+                  {showPastEventsToDelete ? (
+                    <div>
+                      <h4 className="text-md font-semibold mb-2 text-primary">Past Events</h4>
+                      {renderEventList(pastEvents, 'delete')}
+                    </div>
+                  ) : (
+                    <div>
                       <h4 className="text-md font-semibold mb-2 text-primary">Upcoming Events</h4>
                       {renderEventList(upcomingEvents, 'delete')}
                     </div>
-                    <div>
-                      <h4 className="text-md font-semibold mb-2 text-primary mt-4">Past Events</h4>
-                      {renderEventList(pastEvents, 'delete')}
-                    </div>
-              </div>
+                  )}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
