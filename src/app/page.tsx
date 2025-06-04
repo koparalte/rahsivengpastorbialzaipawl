@@ -4,7 +4,7 @@
 import { AppHeader } from '@/components/layout/header';
 import { AppFooter } from '@/components/layout/footer';
 import { Button } from "@/components/ui/button";
-import { Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, CalendarCheck, CalendarClock, ArrowLeftCircle, ArrowRightCircle } from 'lucide-react';
+import { Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, CalendarCheck, CalendarClock, ArrowLeftCircle, ArrowRightCircle, Package } from 'lucide-react'; // Added Package icon
 import {
   Tooltip,
   TooltipContent,
@@ -31,7 +31,7 @@ interface Event {
   endDate?: Date; // Optional end date for multi-day events
   title: string;
   description: string;
-  type?: 'event1' | 'event2' | string;
+  type?: 'event1' | 'event2' | 'event3' | string; // Added event3
   imageUrl?: string;
 }
 
@@ -46,6 +46,7 @@ export default function DashboardPage() {
   
   const [eventType1Count, setEventType1Count] = useState(0);
   const [eventType2Count, setEventType2Count] = useState(0);
+  const [eventType3Count, setEventType3Count] = useState(0); // New state for event3
 
   const firebaseBannerImageUrl: string | undefined = "https://drive.google.com/uc?export=download&id=1dweAS9U6MDBV2X246Xf8IWzwXyVM24G1";
 
@@ -164,10 +165,10 @@ export default function DashboardPage() {
         
         let eventType: string | undefined = undefined;
         if (data.type) {
-          if (typeof data.type === 'string' && ['event1', 'event2'].includes(data.type)) {
+          if (typeof data.type === 'string' && ['event1', 'event2', 'event3'].includes(data.type)) { // Added event3
             eventType = data.type;
           } else {
-            console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " has an invalid 'type' field: '" + data.type + "'. Should be 'event1', 'event2', or left undefined for default. Event will use default styling.");
+            console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " has an invalid 'type' field: '" + data.type + "'. Should be 'event1', 'event2', 'event3', or left undefined for default. Event will use default styling.");
           }
         } else if (data.type === null || data.type === "") {
             console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " has an empty or null 'type' field. Event will use default styling.");
@@ -225,12 +226,15 @@ export default function DashboardPage() {
 
       const count1 = eventsInSelectedMonth.filter(e => e.type === 'event1').length;
       const count2 = eventsInSelectedMonth.filter(e => e.type === 'event2').length;
+      const count3 = eventsInSelectedMonth.filter(e => e.type === 'event3').length; // Count event3
       
       setEventType1Count(count1);
       setEventType2Count(count2);
+      setEventType3Count(count3); // Set event3 count
     } else {
       setEventType1Count(0);
       setEventType2Count(0);
+      setEventType3Count(0); // Reset event3 count
     }
   }, [events, currentMonth]);
 
@@ -335,6 +339,7 @@ export default function DashboardPage() {
   const eventMarkers: Modifiers = {};
   const type1DatesAndRanges: (Date | DateRange)[] = [];
   const type2DatesAndRanges: (Date | DateRange)[] = [];
+  const type3DatesAndRanges: (Date | DateRange)[] = []; // For event3
   const defaultDatesAndRanges: (Date | DateRange)[] = [];
 
   events.forEach(event => {
@@ -347,6 +352,8 @@ export default function DashboardPage() {
       targetArray = type1DatesAndRanges;
     } else if (type === 'event2') {
       targetArray = type2DatesAndRanges;
+    } else if (type === 'event3') { // Handle event3
+      targetArray = type3DatesAndRanges;
     } else {
       targetArray = defaultDatesAndRanges;
     }
@@ -366,6 +373,9 @@ export default function DashboardPage() {
   if (type2DatesAndRanges.length > 0) {
     eventMarkers.hasEventType2 = type2DatesAndRanges;
   }
+  if (type3DatesAndRanges.length > 0) { // Add marker for event3
+    eventMarkers.hasEventType3 = type3DatesAndRanges;
+  }
   if (defaultDatesAndRanges.length > 0) {
     eventMarkers.hasEventDefault = defaultDatesAndRanges;
   }
@@ -373,6 +383,7 @@ export default function DashboardPage() {
   const eventModifiersClassNames = {
     hasEventType1: 'day-has-event-type1',
     hasEventType2: 'day-has-event-type2',
+    hasEventType3: 'day-has-event-type3', // Add class name for event3
     hasEventDefault: 'day-has-event-default',
   };
   
@@ -386,7 +397,7 @@ export default function DashboardPage() {
           
           <DashboardBanner bannerImageUrl={firebaseBannerImageUrl} />
 
-          <div className="grid gap-4 grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <SummaryCard 
               title={"Rawngbawlna " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
               value={eventType1Count.toString()}
@@ -396,6 +407,11 @@ export default function DashboardPage() {
               title={"Hla zir " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
               value={eventType2Count.toString()}
               icon={CalendarClock}
+            />
+            <SummaryCard 
+              title={"Others " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
+              value={eventType3Count.toString()}
+              icon={Package} // Using Package icon for "Others"
             />
           </div>
 
@@ -407,7 +423,7 @@ export default function DashboardPage() {
                     <Link href="/members" passHref>
                       <Button
                         aria-label="View Members"
-                        className="rounded-full w-16 h-16 shadow-md hover:shadow-lg transform transition-transform duration-150 ease-in-out active:scale-95 bg-[#129990] hover:bg-[#0F7A73] text-primary-foreground"
+                        className="rounded-full w-16 h-16 shadow-md hover:shadow-lg transform transition-transform duration-150 ease-in-out bg-[#129990] hover:bg-[#0F7A73] text-primary-foreground"
                       >
                         <Users className="h-10 w-10" />
                       </Button>
@@ -479,10 +495,10 @@ export default function DashboardPage() {
                           <div
                             ref={eventsContainerRef}
                             className={cn(
-                              "pb-2", // Common padding for potential scrollbar
+                              "pb-2", 
                               eventsForSelectedDay.length > 1
-                                ? "flex flex-row overflow-x-auto space-x-4" // Horizontal scroll for multiple items
-                                : "" // Default block layout for single item (parent CardContent handles flex col)
+                                ? "flex flex-row overflow-x-auto space-x-4" 
+                                : "" 
                             )}
                           >
                             {eventsForSelectedDay.map(event => {
@@ -512,8 +528,8 @@ export default function DashboardPage() {
                                   key={event.id}
                                   className={cn(
                                     eventsForSelectedDay.length > 1
-                                      ? "w-72 md:w-80 flex-shrink-0" // Fixed width for horizontal items
-                                      : "w-full" // Full width for single item
+                                      ? "w-72 md:w-80 flex-shrink-0" 
+                                      : "w-full" 
                                   )}
                                 >
                                   <EventCard
@@ -554,10 +570,14 @@ export default function DashboardPage() {
                       <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: 'hsl(var(--primary))' }} />
                       <span className="text-xs text-card-foreground uppercase font-bold">HLA ZIR</span>
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: 'hsl(var(--chart-3))' }} /> 
+                      <span className="text-xs text-card-foreground uppercase font-bold">OTHERS</span>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="flex justify-center p-2 sm:p-4">
-                  {isMounted && currentMonth ? ( // selectedDate no longer needed here for initial calendar render
+                  {isMounted && currentMonth ? ( 
                     <Calendar
                       mode="single"
                       selected={selectedDate}
@@ -596,36 +616,3 @@ export default function DashboardPage() {
 }
     
       
-
-    
-
-    
-
-    
-
-
-
-
-
-    
-
-
-    
-
-
-
-
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-

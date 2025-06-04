@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, PlusCircle, Edit3, Trash2, LayoutDashboard, Calendar as CalendarIcon, Image as ImageIcon, Type, FileText, ListChecks, AlertTriangle, Loader2 } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Edit3, Trash2, LayoutDashboard, Calendar as CalendarIcon, Image as ImageIcon, Type, FileText, ListChecks, AlertTriangle, Loader2, Package } from 'lucide-react'; // Added Package icon
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Dialog,
@@ -347,6 +347,7 @@ export default function AdminDashboardPage() {
                 <SelectItem value={DEFAULT_EVENT_TYPE_VALUE}>Default</SelectItem>
                 <SelectItem value="event1">Rawngbawlna</SelectItem>
                 <SelectItem value="event2">Hla Zir</SelectItem>
+                <SelectItem value="event3">Others</SelectItem>
               </SelectContent>
             </Select>
           )}
