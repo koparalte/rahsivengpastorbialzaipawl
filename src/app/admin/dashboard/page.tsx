@@ -39,6 +39,7 @@ import { collection, addDoc, Timestamp, getDocs, deleteDoc, doc, onSnapshot, Que
 import { useToast } from '@/hooks/use-toast';
 import React, { useState, useTransition, useEffect, useMemo } from 'react';
 import { format, startOfDay } from 'date-fns';
+import { Badge } from '@/components/ui/badge'; // Import Badge component
 
 const NO_IMAGE_SELECTED_VALUE = "--NO_IMAGE_SELECTED--";
 const DEFAULT_EVENT_TYPE_VALUE = "--";
@@ -64,7 +65,7 @@ const eventFormSchema = z.object({
 type EventFormValues = z.infer<typeof eventFormSchema>;
 
 interface EventItem extends EventFormValues {
-  id: string; 
+  id: string;
 }
 
 
@@ -87,7 +88,7 @@ export default function AdminDashboardPage() {
   const [manageableEvents, setManageableEvents] = useState<EventItem[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [eventsError, setEventsError] = useState<string | null>(null);
-  
+
   const [eventToDelete, setEventToDelete] = useState<EventItem | null>(null);
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
   const [isDeletingEvent, startDeleteEventTransition] = useTransition();
@@ -113,12 +114,12 @@ export default function AdminDashboardPage() {
     return eventEffectiveEndDate < today;
   };
 
-  const upcomingEvents = useMemo(() => 
+  const upcomingEvents = useMemo(() =>
     manageableEvents.filter(event => !isEventPast(event)).sort((a, b) => (b.date as Date).getTime() - (a.date as Date).getTime()),
     [manageableEvents]
   );
 
-  const pastEvents = useMemo(() => 
+  const pastEvents = useMemo(() =>
     manageableEvents.filter(event => isEventPast(event)).sort((a, b) => (b.date as Date).getTime() - (a.date as Date).getTime()),
     [manageableEvents]
   );
@@ -138,29 +139,29 @@ export default function AdminDashboardPage() {
         const eventData: any = {
           title: data.title,
           description: data.description,
-          date: Timestamp.fromDate(data.date as Date), 
+          date: Timestamp.fromDate(data.date as Date),
           updatedAt: serverTimestamp(),
         };
 
         if (data.endDate) {
           eventData.endDate = Timestamp.fromDate(data.endDate);
         } else {
-          eventData.endDate = null; 
+          eventData.endDate = null;
         }
-        
+
         if (data.type && data.type !== DEFAULT_EVENT_TYPE_VALUE) {
           eventData.type = data.type;
         } else {
-           eventData.type = null; 
+           eventData.type = null;
         }
-        
+
         if (data.imageUrl && data.imageUrl !== NO_IMAGE_SELECTED_VALUE && data.imageUrl.trim() !== "") {
           eventData.imageUrl = data.imageUrl;
         } else {
-          eventData.imageUrl = null; 
+          eventData.imageUrl = null;
         }
 
-        if (currentEvent && currentEvent.id) { 
+        if (currentEvent && currentEvent.id) {
           const eventRef = doc(db, "calendarEvents", currentEvent.id);
           await updateDoc(eventRef, eventData);
           toast({
@@ -168,7 +169,7 @@ export default function AdminDashboardPage() {
             description: "Event updated successfully.",
           });
           setIsEditEventDialogOpen(false);
-        } else { 
+        } else {
           eventData.createdAt = serverTimestamp();
           await addDoc(collection(db, "calendarEvents"), eventData);
           toast({
@@ -177,15 +178,15 @@ export default function AdminDashboardPage() {
           });
           setIsAddEventDialogOpen(false);
         }
-        form.reset({ 
-            title: "", 
-            description: "", 
-            date: undefined, 
-            endDate: undefined, 
-            type: DEFAULT_EVENT_TYPE_VALUE, 
-            imageUrl: NO_IMAGE_SELECTED_VALUE 
+        form.reset({
+            title: "",
+            description: "",
+            date: undefined,
+            endDate: undefined,
+            type: DEFAULT_EVENT_TYPE_VALUE,
+            imageUrl: NO_IMAGE_SELECTED_VALUE
         });
-        setCurrentEvent(null); 
+        setCurrentEvent(null);
       } catch (error) {
         console.error("Error saving event to Firestore:", error);
         toast({
@@ -219,7 +220,7 @@ export default function AdminDashboardPage() {
           imageUrl: data.imageUrl || NO_IMAGE_SELECTED_VALUE,
         };
       });
-      setManageableEvents(fetchedEvents); 
+      setManageableEvents(fetchedEvents);
       setIsLoadingEvents(false);
       setEventsError(null);
     }, (error) => {
@@ -244,16 +245,16 @@ export default function AdminDashboardPage() {
     });
     setIsEditEventDialogOpen(true);
   };
-  
+
   const openAddEventDialog = () => {
-    setCurrentEvent(null); 
-    form.reset({ 
-        title: "", 
-        description: "", 
-        date: undefined, 
-        endDate: undefined, 
-        type: DEFAULT_EVENT_TYPE_VALUE, 
-        imageUrl: NO_IMAGE_SELECTED_VALUE 
+    setCurrentEvent(null);
+    form.reset({
+        title: "",
+        description: "",
+        date: undefined,
+        endDate: undefined,
+        type: DEFAULT_EVENT_TYPE_VALUE,
+        imageUrl: NO_IMAGE_SELECTED_VALUE
     });
     setIsAddEventDialogOpen(true);
   };
@@ -287,7 +288,7 @@ export default function AdminDashboardPage() {
       }
     });
   };
-  
+
   const renderEventForm = (isEditing: boolean) => (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
       <div>
@@ -390,43 +391,62 @@ export default function AdminDashboardPage() {
     </form>
   );
 
+  const getEventTypeLabelAndVariant = (type?: string): { label: string; variant: "default" | "secondary" | "destructive" } => {
+    switch (type) {
+      case 'event1':
+        return { label: "Rawngbawlna", variant: "destructive" };
+      case 'event2':
+        return { label: "Hla Zir", variant: "default" }; // Primary/Default color for Hla Zir
+      case 'event3':
+        return { label: "Others", variant: "secondary" }; // Secondary for Others
+      default:
+        return { label: "Default", variant: "secondary" };
+    }
+  };
+
   const renderEventList = (eventsToList: EventItem[], actionType: 'edit' | 'delete') => {
     if (eventsToList.length === 0) {
       return <p className="text-sm text-muted-foreground text-center py-2">No events in this category.</p>;
     }
     return (
       <div className="space-y-2">
-        {eventsToList.map((event) => (
-          <div key={event.id} className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/50 transition-colors">
-            <div>
-              <p className="font-medium text-sm text-foreground">{event.title}</p>
-              <p className="text-xs text-muted-foreground">{format(event.date as Date, "PPP")}</p>
+        {eventsToList.map((event) => {
+          const { label: eventTypeLabel, variant: eventTypeVariant } = getEventTypeLabelAndVariant(event.type);
+          return (
+            <div key={event.id} className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/50 transition-colors">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-x-2 gap-y-1 flex-grow min-w-0">
+                <p className="font-medium text-sm text-foreground truncate">{event.title}</p>
+                <Badge variant={eventTypeVariant} className="text-xs whitespace-nowrap w-fit">{eventTypeLabel}</Badge>
+                <p className="text-xs text-muted-foreground sm:ml-auto">{format(event.date as Date, "PPP")}</p>
+              </div>
+              <div className="flex-shrink-0 ml-2">
+                {actionType === 'edit' ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditEventClick(event)}
+                    className="text-primary hover:text-primary hover:bg-primary/10"
+                    aria-label={`Edit event ${event.title}`}
+                    disabled={isSubmitting}
+                  >
+                    <Edit3 className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteEventClick(event)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    aria-label={`Delete event ${event.title}`}
+                    disabled={isDeletingEvent}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
-            {actionType === 'edit' ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleEditEventClick(event)}
-                className="text-primary hover:text-primary hover:bg-primary/10"
-                aria-label={`Edit event ${event.title}`}
-                disabled={isSubmitting}
-              >
-                <Edit3 className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDeleteEventClick(event)}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                aria-label={`Delete event ${event.title}`}
-                disabled={isDeletingEvent}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
@@ -637,5 +657,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    
