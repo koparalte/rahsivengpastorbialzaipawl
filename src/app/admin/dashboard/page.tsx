@@ -155,7 +155,7 @@ export default function AdminDashboardPage() {
           await addDoc(collection(db, "calendarEvents"), eventData);
           toast({
             title: "Success!",
-            description: "Event added successfully.",
+            description: "Rawngbawlna/Hla zir added successfully.",
           });
           setIsAddEventDialogOpen(false);
         }
@@ -172,7 +172,7 @@ export default function AdminDashboardPage() {
         console.error("Error saving event to Firestore:", error);
         toast({
           title: "Error",
-          description: "Failed to save event. Please check console for details.",
+          description: "Failed to save Rawngbawlna/Hla zir. Please check console for details.",
           variant: "destructive",
         });
       }
@@ -366,7 +366,7 @@ export default function AdminDashboardPage() {
         </DialogClose>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isEditing ? "Save Changes" : "Add Event"}
+          {isEditing ? "Save Changes" : "Add Rawngbawlna/Hla zir"}
         </Button>
       </DialogFooter>
     </form>
@@ -399,23 +399,23 @@ export default function AdminDashboardPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <PlusCircle className="h-5 w-5 text-primary" />
-                  Add New Event
+                  Add New Rawngbawlna/Hla zir
                 </CardTitle>
-                <CardDescription>Create a new event for the calendar.</CardDescription>
+                <CardDescription>Create a new Rawngbawlna or Hla zir for the calendar.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">Click here to open the form for inputting event details.</p>
+                <p className="text-sm text-muted-foreground">Click here to open the form for inputting details.</p>
                 <Button className="w-full">
-                  Add Event
+                  Add Rawngbawlna/Hla zir
                 </Button>
               </CardContent>
             </Card>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add New Event</DialogTitle>
+              <DialogTitle>Add New Rawngbawlna/Hla zir</DialogTitle>
               <DialogDescription>
-                Fill in the details below to add a new event to the calendar.
+                Fill in the details below to add a new Rawngbawlna or Hla zir to the calendar.
               </DialogDescription>
             </DialogHeader>
             {renderEventForm(false)}
@@ -563,4 +563,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
