@@ -397,7 +397,7 @@ export default function DashboardPage() {
           
           <DashboardBanner bannerImageUrl={firebaseBannerImageUrl} />
 
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-2 grid-cols-1 sm:grid-cols-3"> {/* Adjusted grid and gap */}
             <SummaryCard 
               title={"Rawngbawlna " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
               value={eventType1Count.toString()}
@@ -616,3 +616,4 @@ export default function DashboardPage() {
 }
     
       
+
