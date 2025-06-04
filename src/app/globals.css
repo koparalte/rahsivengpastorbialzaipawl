@@ -5,26 +5,25 @@
 
 @layer base {
   :root {
-    --background: 53 100% 94%; /* #FFFBDE - Pale Yellow */
-    --foreground: 53 25% 15%;   /* Dark desaturated warm tone for text */
+    --background: 190 33% 84%; /* #C4E1E6 - Light Cyan-Blue */
+    --foreground: 0 0% 13%;   /* Dark Neutral Gray for text */
     --card: 0 0% 100%;           /* White for cards */
-    --card-foreground: 53 25% 15%; /* Dark desaturated warm tone for text on cards */
+    --card-foreground: 0 0% 13%; /* Dark Neutral Gray for text on cards */
     --popover: 0 0% 100%;
-    --popover-foreground: 53 25% 15%;
-    --primary: 217 91% 59%;      /* Original Primary Blue - #4285F4 */
+    --popover-foreground: 0 0% 13%;
+    --primary: 217 91% 59%;      /* #4285F4 - Vibrant Blue (PRD) */
     --primary-foreground: 0 0% 98%; /* White */
-    --secondary: 53 80% 90%;     /* Lighter, slightly desaturated yellow */
-    --secondary-foreground: 53 25% 25%; /* Darker text on secondary */
-    --muted: 53 90% 96%;       /* Very light, desaturated yellow for muted backgrounds */
-    --muted-foreground: 53 20% 45%; /* Medium-dark text for muted bg */
-    --accent: 43 90% 48%;        /* Original Accent Orange/Yellow - #F4B400 */
+    --secondary: 210 20% 92%;     /* Light Gray for secondary elements */
+    --secondary-foreground: 210 15% 25%; /* Dark Gray text on light gray secondary */
+    --muted: 190 30% 92%;       /* Lighter, desaturated version of background hue */
+    --muted-foreground: 190 15% 45%; /* Medium-dark text on new muted */
+    --accent: 43 90% 48%;        /* #F4B400 - Orange/Yellow (PRD) */
     --accent-foreground: 0 0% 10%;   /* Dark text on accent */
     --destructive: 0 84.2% 60.2%; /* Standard red */
     --destructive-foreground: 0 0% 98%;
-    --border: 53 60% 80%;       /* Border color, a desaturated yellow */
-    --input: 53 90% 95%;           /* Input backgrounds, similar to muted */
-    --ring: 217 91% 59%;         /* Original Primary for focus rings */
-    --radius: 0.5rem;
+    --border: 190 25% 75%;       /* Desaturated version of background hue for borders */
+    --input: 190 30% 94%;        /* Very light version of background hue for inputs */
+    --ring: 217 91% 59%;         /* Primary Blue for focus rings */
 
     --chart-1: 217 91% 59%; /* Primary */
     --chart-2: 43 90% 48%;  /* Accent */
@@ -33,13 +32,13 @@
     --chart-5: 0 80% 65%;   /* A red/pink */
 
     /* Sidebar specific colors (adjusted for new light background) */
-    --sidebar-background: 53 100% 94%; /* Same as main background */
-    --sidebar-foreground: 53 25% 15%;   /* Dark text for sidebar */
+    --sidebar-background: 190 33% 84%; /* Match main background */
+    --sidebar-foreground: 0 0% 13%;   /* Match main foreground */
     --sidebar-primary: 217 91% 59%;      /* Original Primary */
     --sidebar-primary-foreground: 0 0% 98%; /* White */
-    --sidebar-accent: 53 80% 88%;         /* Darker/more saturated shade for hover/active states */
-    --sidebar-accent-foreground: 53 25% 10%; /* Dark text for contrast on sidebar accent */
-    --sidebar-border: 53 50% 75%;       /* Border for sidebar elements */
+    --sidebar-accent: 190 30% 78%;         /* Slightly darker/interactive shade of sidebar bg */
+    --sidebar-accent-foreground: 0 0% 10%; /* Dark text for contrast on sidebar accent */
+    --sidebar-border: 190 25% 70%;       /* Desaturated version of sidebar bg for borders */
     --sidebar-ring: 217 91% 59%;         /* Original Primary for focus rings */
   }
 
