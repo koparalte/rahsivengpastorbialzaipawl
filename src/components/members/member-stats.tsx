@@ -3,7 +3,7 @@
 
 import type { PictureData } from '@/components/members/member-gallery';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, BarChart3, UserCheck, UserMinus } from 'lucide-react';
+import { Users, BarChart3, UserCheck, UserMinus } from 'lucide-react'; // UserCheck can represent male/female with different colors if needed
 
 interface MemberStatsProps {
   members: PictureData[];
@@ -32,6 +32,9 @@ export function MemberStats({ members }: MemberStatsProps) {
   }
 
   const totalMembers = members.length;
+  const maleCount = members.filter(member => member.gender === 'm').length;
+  const femaleCount = members.filter(member => member.gender === 'f').length;
+  // const unknownGenderCount = totalMembers - maleCount - femaleCount; // Not explicitly requested for this card
 
   const detailedKohhranCounts: Record<string, { total: number; male: number; female: number; unknown: number }> = {};
 
@@ -70,7 +73,17 @@ export function MemberStats({ members }: MemberStatsProps) {
             <Users className="h-5 w-5 text-accent" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-card-foreground">{totalMembers}</div>
+            <div className="text-2xl font-bold text-card-foreground mb-1">{totalMembers}</div>
+            <div className="text-xs text-muted-foreground space-y-0.5">
+              <div className="flex items-center">
+                <UserCheck className="h-3.5 w-3.5 mr-1.5 text-blue-500" /> {/* Mipa */}
+                <span>Mipa: {maleCount}</span>
+              </div>
+              <div className="flex items-center">
+                <UserCheck className="h-3.5 w-3.5 mr-1.5 text-pink-500" /> {/* Hmeichhia */}
+                <span>Hmeichhia: {femaleCount}</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
