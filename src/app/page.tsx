@@ -4,7 +4,7 @@
 import { AppHeader } from '@/components/layout/header';
 import { AppFooter } from '@/components/layout/footer';
 import { Button } from "@/components/ui/button";
-import { Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, CalendarCheck, CalendarClock, ArrowLeftCircle, ArrowRightCircle, Package } from 'lucide-react'; // Added Package icon
+import { Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, CalendarCheck, CalendarClock, ArrowLeftCircle, ArrowRightCircle, Package } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -31,7 +31,7 @@ interface Event {
   endDate?: Date; // Optional end date for multi-day events
   title: string;
   description: string;
-  type?: 'event1' | 'event2' | 'event3' | string; // Added event3
+  type?: 'event1' | 'event2' | 'event3' | string;
   imageUrl?: string;
 }
 
@@ -46,7 +46,7 @@ export default function DashboardPage() {
   
   const [eventType1Count, setEventType1Count] = useState(0);
   const [eventType2Count, setEventType2Count] = useState(0);
-  const [eventType3Count, setEventType3Count] = useState(0); // New state for event3
+  const [eventType3Count, setEventType3Count] = useState(0);
 
   const firebaseBannerImageUrl: string | undefined = "https://drive.google.com/uc?export=download&id=1dweAS9U6MDBV2X246Xf8IWzwXyVM24G1";
 
@@ -165,7 +165,7 @@ export default function DashboardPage() {
         
         let eventType: string | undefined = undefined;
         if (data.type) {
-          if (typeof data.type === 'string' && ['event1', 'event2', 'event3'].includes(data.type)) { // Added event3
+          if (typeof data.type === 'string' && ['event1', 'event2', 'event3'].includes(data.type)) {
             eventType = data.type;
           } else {
             console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " has an invalid 'type' field: '" + data.type + "'. Should be 'event1', 'event2', 'event3', or left undefined for default. Event will use default styling.");
@@ -226,15 +226,15 @@ export default function DashboardPage() {
 
       const count1 = eventsInSelectedMonth.filter(e => e.type === 'event1').length;
       const count2 = eventsInSelectedMonth.filter(e => e.type === 'event2').length;
-      const count3 = eventsInSelectedMonth.filter(e => e.type === 'event3').length; // Count event3
+      const count3 = eventsInSelectedMonth.filter(e => e.type === 'event3').length;
       
       setEventType1Count(count1);
       setEventType2Count(count2);
-      setEventType3Count(count3); // Set event3 count
+      setEventType3Count(count3);
     } else {
       setEventType1Count(0);
       setEventType2Count(0);
-      setEventType3Count(0); // Reset event3 count
+      setEventType3Count(0);
     }
   }, [events, currentMonth]);
 
@@ -339,7 +339,7 @@ export default function DashboardPage() {
   const eventMarkers: Modifiers = {};
   const type1DatesAndRanges: (Date | DateRange)[] = [];
   const type2DatesAndRanges: (Date | DateRange)[] = [];
-  const type3DatesAndRanges: (Date | DateRange)[] = []; // For event3
+  const type3DatesAndRanges: (Date | DateRange)[] = [];
   const defaultDatesAndRanges: (Date | DateRange)[] = [];
 
   events.forEach(event => {
@@ -352,7 +352,7 @@ export default function DashboardPage() {
       targetArray = type1DatesAndRanges;
     } else if (type === 'event2') {
       targetArray = type2DatesAndRanges;
-    } else if (type === 'event3') { // Handle event3
+    } else if (type === 'event3') {
       targetArray = type3DatesAndRanges;
     } else {
       targetArray = defaultDatesAndRanges;
@@ -373,7 +373,7 @@ export default function DashboardPage() {
   if (type2DatesAndRanges.length > 0) {
     eventMarkers.hasEventType2 = type2DatesAndRanges;
   }
-  if (type3DatesAndRanges.length > 0) { // Add marker for event3
+  if (type3DatesAndRanges.length > 0) {
     eventMarkers.hasEventType3 = type3DatesAndRanges;
   }
   if (defaultDatesAndRanges.length > 0) {
@@ -383,7 +383,7 @@ export default function DashboardPage() {
   const eventModifiersClassNames = {
     hasEventType1: 'day-has-event-type1',
     hasEventType2: 'day-has-event-type2',
-    hasEventType3: 'day-has-event-type3', // Add class name for event3
+    hasEventType3: 'day-has-event-type3',
     hasEventDefault: 'day-has-event-default',
   };
   
@@ -397,7 +397,7 @@ export default function DashboardPage() {
           
           <DashboardBanner bannerImageUrl={firebaseBannerImageUrl} />
 
-          <div className="grid gap-2 grid-cols-1 sm:grid-cols-3"> {/* Adjusted grid and gap */}
+          <div className="grid gap-2 grid-cols-2 sm:grid-cols-3">
             <SummaryCard 
               title={"Rawngbawlna " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
               value={eventType1Count.toString()}
@@ -411,7 +411,7 @@ export default function DashboardPage() {
             <SummaryCard 
               title={"Others " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
               value={eventType3Count.toString()}
-              icon={Package} // Using Package icon for "Others"
+              icon={Package}
             />
           </div>
 
@@ -616,4 +616,5 @@ export default function DashboardPage() {
 }
     
       
+
 
