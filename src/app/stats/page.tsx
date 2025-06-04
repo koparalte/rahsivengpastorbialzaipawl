@@ -25,7 +25,7 @@ interface MonthlyStat {
   rawngbawlna: number;
   hlaZir: number;
   others: number;
-  defaultEvent: number;
+  // defaultEvent: number; // No longer explicitly needed for chart if not displayed
 }
 
 const chartConfig = {
@@ -41,10 +41,7 @@ const chartConfig = {
     label: "Others",
     color: "hsl(var(--chart-3))", // Green
   },
-  defaultEvent: {
-    label: "Default",
-    color: "hsl(var(--chart-2))", // Orange/Yellow
-  },
+  // defaultEvent entry removed
 } satisfies ChartConfig;
 
 export default function EventStatsPage() {
@@ -95,7 +92,7 @@ export default function EventStatsPage() {
             statsByMonth[monthKey].others++;
             break;
           default:
-            statsByMonth[monthKey].defaultEvent++;
+            (statsByMonth[monthKey] as any).defaultEvent++; // Keep counting for data integrity if needed elsewhere
             break;
         }
       });
@@ -103,11 +100,23 @@ export default function EventStatsPage() {
       const formattedStats: MonthlyStat[] = Object.entries(statsByMonth)
         .map(([monthKey, counts]) => ({
           month: format(parseISO(monthKey + "-01"), "MMMM yyyy"), // "January 2024" for display
-          ...counts,
+          rawngbawlna: counts.rawngbawlna,
+          hlaZir: counts.hlaZir,
+          others: counts.others,
+          // defaultEvent: (counts as any).defaultEvent, // No longer explicitly needed for chart
         }))
         .sort((a, b) => {
-            const dateA = parseISO(Object.keys(statsByMonth).find(key => format(parseISO(key + "-01"), "MMMM yyyy") === a.month) + "-01");
-            const dateB = parseISO(Object.keys(statsByMonth).find(key => format(parseISO(key + "-01"), "MMMM yyyy") === b.month) + "-01");
+            // Ensure statsByMonth keys used for sorting are correctly mapped back if needed
+            const findMonthKey = (stats: Record<string, any>, formattedMonth: string) => 
+                Object.keys(stats).find(key => format(parseISO(key + "-01"), "MMMM yyyy") === formattedMonth);
+            
+            const keyA = findMonthKey(statsByMonth, a.month);
+            const keyB = findMonthKey(statsByMonth, b.month);
+
+            if (!keyA || !keyB) return 0; // Should not happen if data is consistent
+
+            const dateA = parseISO(keyA + "-01");
+            const dateB = parseISO(keyB + "-01");
             return dateA.getTime() - dateB.getTime();
         });
 
@@ -145,7 +154,7 @@ export default function EventStatsPage() {
             <CardHeader>
               <CardTitle>Event Counts by Type (Monthly)</CardTitle>
               <CardDescription>
-                This chart displays the number of Rawngbawlna, Hla Zir, Others, and Default events recorded each month.
+                This chart displays the number of Rawngbawlna, Hla Zir, and Others events recorded each month.
               </CardDescription>
             </CardHeader>
             <CardContent className="min-h-[300px]">
@@ -185,7 +194,7 @@ export default function EventStatsPage() {
                       <Bar dataKey="rawngbawlna" fill="var(--color-rawngbawlna)" radius={[4, 4, 0, 0]} name="Rawngbawlna" />
                       <Bar dataKey="hlaZir" fill="var(--color-hlaZir)" radius={[4, 4, 0, 0]} name="Hla Zir" />
                       <Bar dataKey="others" fill="var(--color-others)" radius={[4, 4, 0, 0]} name="Others" />
-                      <Bar dataKey="defaultEvent" fill="var(--color-defaultEvent)" radius={[4, 4, 0, 0]} name="Default" />
+                      {/* <Bar dataKey="defaultEvent" fill="var(--color-defaultEvent)" radius={[4, 4, 0, 0]} name="Default" /> */}
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartContainer>
@@ -198,3 +207,4 @@ export default function EventStatsPage() {
     </div>
   );
 }
+
