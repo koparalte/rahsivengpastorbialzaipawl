@@ -394,12 +394,12 @@ export default function DashboardPage() {
 
           <div className="grid gap-4 grid-cols-2">
             <SummaryCard 
-              title={`Rawngbawlna ${isMounted && currentMonth ? `(${currentMonthNameForStats})` : ''}`}
+              title={`Rawngbawlna ${isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : ''}`}
               value={eventType1Count.toString()}
               icon={CalendarCheck}
             />
             <SummaryCard 
-              title={`Hla zir ${isMounted && currentMonth ? `(${currentMonthNameForStats})` : ''}`}
+              title={`Hla zir ${isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : ''}`}
               value={eventType2Count.toString()}
               icon={CalendarClock}
             />
@@ -477,14 +477,20 @@ export default function DashboardPage() {
                           </div>
                           <p className="text-sm mt-1">{eventsError}</p>
                           {(eventsError.toLowerCase().includes("firebase") || eventsError.toLowerCase().includes("firestore")) &&
-                            <p className="mt-2 text-xs">Please ensure your Firebase configuration in <code className="bg-muted px-1 py-0.5 rounded">.env.local</code> is correct and the server has been restarted. Also, verify your Firestore 'calendarEvents' collection exists, has the correct document structure (with a Timestamp field named \`date\`, an optional Timestamp field \`endDate\`, string fields \`title\`, \`description\`, an optional string field \`type\` which can be 'event1' or 'event2', and an optional string field \`imageUrl\`), and security rules allow reads. Check the browser console and terminal for more specific errors (especially any lines starting with [Firestore Data Check] in the browser console).</p>
+                            <p className="mt-2 text-xs">Please ensure your Firebase configuration in <code className="bg-muted px-1 py-0.5 rounded">.env.local</code> is correct and the server has been restarted. Also, verify your Firestore 'calendarEvents' collection exists, has the correct document structure (with a Timestamp field named 'date', an optional Timestamp field 'endDate', string fields 'title', 'description', an optional string field 'type' which can be 'event1' or 'event2', and an optional string field 'imageUrl'), and security rules allow reads. Check the browser console and terminal for more specific errors (especially any lines starting with [Firestore Data Check] in the browser console).</p>
                           }
                         </div>
                       ) : selectedDate ? (
                         eventsForSelectedDay.length > 0 ? (
-                          <div ref={eventsContainerRef} className={cn("flex flex-col space-y-4", {
-                            "overflow-x-auto space-x-4 !flex-row pb-2 scrollbar-hide": eventsForSelectedDay.length > 1 && eventsContainerRef.current && eventsContainerRef.current.scrollWidth > eventsContainerRef.current.clientWidth, 
-                          })}>
+                          <div
+                            ref={eventsContainerRef}
+                            className={cn(
+                              "pb-2", // Common padding for potential scrollbar
+                              eventsForSelectedDay.length > 1
+                                ? "flex flex-row overflow-x-auto space-x-4" // Horizontal scroll for multiple items
+                                : "" // Default block layout for single item (parent CardContent handles flex col)
+                            )}
+                          >
                             {eventsForSelectedDay.map(event => {
                               let displayDateString: string | undefined = undefined;
                               if (event.date instanceof Date && !isNaN(event.date.getTime())) { 
@@ -501,14 +507,21 @@ export default function DashboardPage() {
                                 if (isMultiDayEvent && event.endDate instanceof Date && !isNaN(event.endDate.getTime())) { 
                                   const from = event.date < event.endDate ? event.date : event.endDate;
                                   const to = event.date < event.endDate ? event.endDate : event.date;
-                                  displayDateString = `${format(from, 'dd MMM')} - ${format(to, 'dd MMM')}`;
+                                  displayDateString = format(from, 'dd MMM') + " - " + format(to, 'dd MMM');
                                 } else {
                                   displayDateString = format(event.date, 'dd MMM');
                                 }
                               }
 
                               return (
-                                <div key={event.id} className={cn("w-full", { "w-full": eventsForSelectedDay.length === 1, "w-72 md:w-80 flex-shrink-0": eventsForSelectedDay.length > 1 })}>
+                                <div
+                                  key={event.id}
+                                  className={cn(
+                                    eventsForSelectedDay.length > 1
+                                      ? "w-72 md:w-80 flex-shrink-0" // Fixed width for horizontal items
+                                      : "w-full" // Full width for single item
+                                  )}
+                                >
                                   <EventCard
                                     title={event.title}
                                     description={event.description}
@@ -521,7 +534,7 @@ export default function DashboardPage() {
                           </div>
                         ) : (
                           <p className="text-muted-foreground text-center py-4">
-                            No events scheduled for {format(selectedDate, 'dd MMM')}.
+                            {"No events scheduled for " + format(selectedDate, 'dd MMM') + "."}
                           </p>
                         )
                       ) : (
