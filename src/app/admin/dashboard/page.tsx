@@ -36,8 +36,8 @@ import * as z from 'zod';
 import { db, firebaseInitializationError } from '@/lib/firebase';
 import { collection, addDoc, Timestamp, getDocs, deleteDoc, doc, onSnapshot, QueryDocumentSnapshot, DocumentData, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from '@/hooks/use-toast';
-import React, { useState, useTransition, useEffect } from 'react';
-import { format } from 'date-fns';
+import React, { useState, useTransition, useEffect, useMemo } from 'react';
+import { format, startOfDay } from 'date-fns';
 
 const NO_IMAGE_SELECTED_VALUE = "--NO_IMAGE_SELECTED--";
 const DEFAULT_EVENT_TYPE_VALUE = "--";
@@ -63,8 +63,7 @@ const eventFormSchema = z.object({
 type EventFormValues = z.infer<typeof eventFormSchema>;
 
 interface EventItem extends EventFormValues {
-  id: string; // Ensure id is always present for EventItem used in lists
-  // date and endDate will be Date objects after fetching and conversion
+  id: string; 
 }
 
 
@@ -105,6 +104,22 @@ export default function AdminDashboardPage() {
     },
   });
 
+  const isEventPast = (event: EventItem): boolean => {
+    const today = startOfDay(new Date());
+    const eventEffectiveEndDate = event.endDate ? startOfDay(event.endDate) : startOfDay(event.date as Date);
+    return eventEffectiveEndDate < today;
+  };
+
+  const upcomingEvents = useMemo(() => 
+    manageableEvents.filter(event => !isEventPast(event)).sort((a, b) => (b.date as Date).getTime() - (a.date as Date).getTime()),
+    [manageableEvents]
+  );
+
+  const pastEvents = useMemo(() => 
+    manageableEvents.filter(event => isEventPast(event)).sort((a, b) => (b.date as Date).getTime() - (a.date as Date).getTime()),
+    [manageableEvents]
+  );
+
   const onSubmit: SubmitHandler<EventFormValues> = async (data) => {
     if (firebaseInitializationError || !db) {
       toast({
@@ -120,29 +135,29 @@ export default function AdminDashboardPage() {
         const eventData: any = {
           title: data.title,
           description: data.description,
-          date: Timestamp.fromDate(data.date as Date), // Assert date is not undefined
+          date: Timestamp.fromDate(data.date as Date), 
           updatedAt: serverTimestamp(),
         };
 
         if (data.endDate) {
           eventData.endDate = Timestamp.fromDate(data.endDate);
         } else {
-          eventData.endDate = null; // Or delete if you prefer field removal
+          eventData.endDate = null; 
         }
         
         if (data.type && data.type !== DEFAULT_EVENT_TYPE_VALUE) {
           eventData.type = data.type;
         } else {
-           eventData.type = null; // Or delete
+           eventData.type = null; 
         }
         
         if (data.imageUrl && data.imageUrl !== NO_IMAGE_SELECTED_VALUE && data.imageUrl.trim() !== "") {
           eventData.imageUrl = data.imageUrl;
         } else {
-          eventData.imageUrl = null; // Or delete
+          eventData.imageUrl = null; 
         }
 
-        if (currentEvent && currentEvent.id) { // Editing existing event
+        if (currentEvent && currentEvent.id) { 
           const eventRef = doc(db, "calendarEvents", currentEvent.id);
           await updateDoc(eventRef, eventData);
           toast({
@@ -150,7 +165,7 @@ export default function AdminDashboardPage() {
             description: "Event updated successfully.",
           });
           setIsEditEventDialogOpen(false);
-        } else { // Adding new event
+        } else { 
           eventData.createdAt = serverTimestamp();
           await addDoc(collection(db, "calendarEvents"), eventData);
           toast({
@@ -167,7 +182,7 @@ export default function AdminDashboardPage() {
             type: DEFAULT_EVENT_TYPE_VALUE, 
             imageUrl: NO_IMAGE_SELECTED_VALUE 
         });
-        setCurrentEvent(null); // Reset current event after submission
+        setCurrentEvent(null); 
       } catch (error) {
         console.error("Error saving event to Firestore:", error);
         toast({
@@ -201,7 +216,7 @@ export default function AdminDashboardPage() {
           imageUrl: data.imageUrl || NO_IMAGE_SELECTED_VALUE,
         };
       });
-      setManageableEvents(fetchedEvents.sort((a, b) => (b.date as Date).getTime() - (a.date as Date).getTime()));
+      setManageableEvents(fetchedEvents); // No sort here, will be sorted in useMemo for upcoming/past
       setIsLoadingEvents(false);
       setEventsError(null);
     }, (error) => {
@@ -228,8 +243,8 @@ export default function AdminDashboardPage() {
   };
   
   const openAddEventDialog = () => {
-    setCurrentEvent(null); // Ensure no current event is set for adding
-    form.reset({ // Reset form to default values for adding
+    setCurrentEvent(null); 
+    form.reset({ 
         title: "", 
         description: "", 
         date: undefined, 
@@ -256,7 +271,6 @@ export default function AdminDashboardPage() {
           title: "Event Deleted",
           description: `"${eventToDelete.title}" has been successfully deleted.`,
         });
-        setManageableEvents(prevEvents => prevEvents.filter(e => e.id !== eventToDelete.id));
       } catch (error) {
         console.error("Error deleting event:", error);
         toast({
@@ -372,6 +386,48 @@ export default function AdminDashboardPage() {
     </form>
   );
 
+  const renderEventList = (eventsToList: EventItem[], actionType: 'edit' | 'delete') => {
+    if (eventsToList.length === 0) {
+      return <p className="text-sm text-muted-foreground text-center py-2">No events in this category.</p>;
+    }
+    return (
+      <div className="space-y-2">
+        {eventsToList.map((event) => (
+          <div key={event.id} className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/50 transition-colors">
+            <div>
+              <p className="font-medium text-sm text-foreground">{event.title}</p>
+              <p className="text-xs text-muted-foreground">{format(event.date as Date, "PPP")}</p>
+            </div>
+            {actionType === 'edit' ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleEditEventClick(event)}
+                className="text-primary hover:text-primary hover:bg-primary/10"
+                aria-label={`Edit event ${event.title}`}
+                disabled={isSubmitting}
+              >
+                <Edit3 className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeleteEventClick(event)}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                aria-label={`Delete event ${event.title}`}
+                disabled={isDeletingEvent}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+
   return (
     <div className="container mx-auto py-8 px-4 md:px-6">
       <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
@@ -449,25 +505,15 @@ export default function AdminDashboardPage() {
                 ) : manageableEvents.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">No events available to modify.</p>
                 ) : (
-                  <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
-                    {manageableEvents.map((event) => (
-                      <div key={event.id} className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/50 transition-colors">
-                        <div>
-                          <p className="font-medium text-sm text-foreground">{event.title}</p>
-                          <p className="text-xs text-muted-foreground">{format(event.date as Date, "PPP")}</p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditEventClick(event)}
-                          className="text-primary hover:text-primary hover:bg-primary/10"
-                          aria-label={`Edit event ${event.title}`}
-                          disabled={isSubmitting}
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                  <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
+                    <div>
+                      <h4 className="text-md font-semibold mb-2 text-primary">Upcoming Events</h4>
+                      {renderEventList(upcomingEvents, 'edit')}
+                    </div>
+                    <div>
+                      <h4 className="text-md font-semibold mb-2 text-primary mt-4">Past Events</h4>
+                      {renderEventList(pastEvents, 'edit')}
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -509,25 +555,15 @@ export default function AdminDashboardPage() {
             ) : manageableEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">No events available to delete.</p>
             ) : (
-              <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
-                {manageableEvents.map((event) => (
-                  <div key={event.id} className="flex items-center justify-between p-2 border rounded-md hover:bg-muted/50 transition-colors">
-                    <div>
-                      <p className="font-medium text-sm text-foreground">{event.title}</p>
-                      <p className="text-xs text-muted-foreground">{format(event.date as Date, "PPP")}</p>
+              <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
+                 <div>
+                      <h4 className="text-md font-semibold mb-2 text-primary">Upcoming Events</h4>
+                      {renderEventList(upcomingEvents, 'delete')}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteEventClick(event)}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      aria-label={`Delete event ${event.title}`}
-                      disabled={isDeletingEvent}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+                    <div>
+                      <h4 className="text-md font-semibold mb-2 text-primary mt-4">Past Events</h4>
+                      {renderEventList(pastEvents, 'delete')}
+                    </div>
               </div>
             )}
           </CardContent>
