@@ -4,7 +4,7 @@
 import { AppHeader } from '@/components/layout/header';
 import { AppFooter } from '@/components/layout/footer';
 import { Button } from "@/components/ui/button";
-import { Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, CalendarCheck, CalendarClock, ArrowLeftCircle, ArrowRightCircle, Package } from 'lucide-react';
+import { Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, CalendarCheck, CalendarClock, ArrowLeftCircle, ArrowRightCircle, Package, BarChart3 } from 'lucide-react'; // Added BarChart3
 import {
   Tooltip,
   TooltipContent,
@@ -14,7 +14,7 @@ import {
 import Link from 'next/link';
 import { DashboardBanner } from '@/components/dashboard/dashboard-banner';
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"; // Card components already imported
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { EventCard } from '@/components/dashboard/event-card';
 import { isSameDay, format, isSameMonth, startOfDay, endOfDay, isWithinInterval, addDays, subDays } from 'date-fns';
@@ -397,7 +397,7 @@ export default function DashboardPage() {
           
           <DashboardBanner bannerImageUrl={firebaseBannerImageUrl} />
 
-          <div className="grid gap-2 grid-cols-2 sm:grid-cols-3">
+          <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
             <SummaryCard 
               title={"Rawngbawlna " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
               value={eventType1Count.toString()}
@@ -413,6 +413,17 @@ export default function DashboardPage() {
               value={eventType3Count.toString()}
               icon={Package}
             />
+            <Link href="/stats" passHref>
+              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center text-center p-3 cursor-pointer h-full bg-card hover:bg-muted/50">
+                <CardHeader className="p-1 pb-1 flex flex-col items-center">
+                  <BarChart3 className="h-6 w-6 text-accent mb-1" />
+                  <CardTitle className="text-sm font-medium text-card-foreground">Event Statistics</CardTitle>
+                </CardHeader>
+                <CardContent className="p-1 pt-0">
+                  <p className="text-xs text-muted-foreground">View monthly charts</p>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
 
           <div className="flex justify-center mb-8">
@@ -616,5 +627,6 @@ export default function DashboardPage() {
 }
     
       
+
 
 
