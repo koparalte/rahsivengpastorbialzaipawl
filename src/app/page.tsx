@@ -417,7 +417,7 @@ export default function DashboardPage() {
               <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center text-center p-3 cursor-pointer h-full bg-card hover:bg-muted/50">
                 <CardHeader className="p-1 pb-1 flex flex-col items-center">
                   <BarChart3 className="h-6 w-6 text-accent mb-1" />
-                  <CardTitle className="text-sm font-medium text-card-foreground">Event Statistics</CardTitle>
+                  <CardTitle className="text-sm font-medium text-card-foreground">Activity Statistics</CardTitle>
                 </CardHeader>
                 <CardContent className="p-1 pt-0">
                   <p className="text-xs text-muted-foreground">View monthly charts</p>
@@ -630,3 +630,6 @@ export default function DashboardPage() {
 
 
 
+
+
+    

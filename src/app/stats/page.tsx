@@ -140,7 +140,7 @@ export default function EventStatsPage() {
           <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
             <div className="flex items-center gap-3">
               <BarChart3 className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Monthly Event Statistics</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Monthly Activity Statistics</h1>
             </div>
             <Button variant="outline" asChild className="w-full sm:w-auto">
               <Link href="/">
@@ -152,9 +152,9 @@ export default function EventStatsPage() {
 
           <Card className="shadow-xl">
             <CardHeader>
-              <CardTitle>Event Counts by Type (Monthly)</CardTitle>
+              <CardTitle>Activity Counts by Type (Monthly)</CardTitle>
               <CardDescription>
-                This chart displays the number of Rawngbawlna, Hla Zir, and Others events recorded each month.
+                This chart displays the number of Rawngbawlna, Hla Zir, and Others activities recorded each month.
               </CardDescription>
             </CardHeader>
             <CardContent className="min-h-[300px]">
@@ -171,7 +171,7 @@ export default function EventStatsPage() {
                 </div>
               ) : monthlyStats.length === 0 ? (
                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No event data available to display statistics.
+                  No activity data available to display statistics.
                 </div>
               ) : (
                 <ChartContainer config={chartConfig} className="h-[400px] w-full">
@@ -208,3 +208,6 @@ export default function EventStatsPage() {
   );
 }
 
+
+
+    
