@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Shield, LogIn, LogOut, UserCircle, Loader2, Menu, Home, Users as UsersIcon, BarChart3 as StatsIcon } from 'lucide-react'; // Added Menu and other icons
+import { Shield, LogIn, LogOut, UserCircle, Loader2, Menu, Home, Users as UsersIcon, BarChart3 as StatsIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import {
   Sheet,
@@ -94,8 +94,8 @@ export function AppHeader() {
           </SheetContent>
         </Sheet>
 
-        {/* Existing Auth Buttons - pushed to the right */}
-        <div className="flex items-center gap-2 ml-auto"> {/* Added ml-auto to push this group to the right */}
+        {/* Auth Information / Login Button - pushed to the right */}
+        <div className="flex items-center gap-2 ml-auto">
           {authError && !user && (
             <span className="text-xs text-destructive mr-2 text-center sm:text-right">
               Auth Error: {authError.length > 50 ? authError.substring(0, 50) + "..." : authError}
@@ -112,8 +112,7 @@ export function AppHeader() {
                 <UserCircle className="mr-1.5 h-4 w-4" />
                 {user.displayName || user.email}{isAdmin ? ' (Admin)' : ''}
               </span>
-              {/* Logout button is now primarily in the drawer */}
-              {/* Admin Panel link is now primarily in the drawer */}
+              {/* Admin and Logout buttons for larger screens are removed from here. They are in the drawer. */}
             </>
           ) : (
             <Button
@@ -124,21 +123,6 @@ export function AppHeader() {
               <LogIn className="mr-2 h-4 w-4" />
               Login with Google
             </Button>
-          )}
-           {/* Conditional buttons that might still be useful in header for quick access on desktop */}
-           {user && isAdmin && !authLoading && (
-            <Link href="/admin/dashboard" className="hidden sm:inline-flex">
-              <Button variant="outline" size="sm" className="shadow-sm hover:shadow-md transition-shadow">
-                <Shield className="mr-2 h-4 w-4" />
-                Admin
-              </Button>
-            </Link>
-          )}
-          {user && !authLoading && (
-             <Button variant="outline" size="sm" onClick={logout} className="shadow-sm hover:shadow-md transition-shadow hidden sm:inline-flex">
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
           )}
         </div>
       </div>
