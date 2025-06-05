@@ -16,10 +16,25 @@ import {
 } from "@/components/ui/sheet";
 import React, { useState } from 'react';
 import { Separator } from '../ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Import Avatar components
 
 export function AppHeader() {
   const { user, isAdmin, loading: authLoading, loginWithGoogle, logout, authError } = useAuth();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const getInitials = (name?: string | null, email?: string | null): string => {
+    if (name) {
+      const parts = name.split(' ');
+      if (parts.length > 1) {
+        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+      }
+      return name[0].toUpperCase();
+    }
+    if (email) {
+      return email[0].toUpperCase();
+    }
+    return 'U'; // Default User
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
@@ -107,13 +122,15 @@ export function AppHeader() {
               Loading...
             </Button>
           ) : user ? (
-            <>
-              <span className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                <UserCircle className="mr-1.5 h-4 w-4" />
+            <div className="flex items-center gap-2">
+              <Avatar className="h-7 w-7">
+                {user.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || user.email || 'User'} />}
+                <AvatarFallback className="text-xs">{getInitials(user.displayName, user.email)}</AvatarFallback>
+              </Avatar>
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 {user.displayName || user.email}{isAdmin ? ' (Admin)' : ''}
               </span>
-              {/* Admin and Logout buttons for larger screens are removed from here. They are in the drawer. */}
-            </>
+            </div>
           ) : (
             <Button
               size="sm"
