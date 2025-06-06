@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, PlusCircle, Edit3, Trash2, LayoutDashboard, Calendar as CalendarIcon, Image as ImageIcon, Type, FileText, ListChecks, AlertTriangle, Loader2, Package } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Edit3, Trash2, LayoutDashboard, Calendar as CalendarIcon, Image as ImageIcon, Type, FileText, ListChecks, AlertTriangle, Loader2, Package, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Dialog,
@@ -46,19 +46,27 @@ const NO_IMAGE_SELECTED_VALUE = "--NO_IMAGE_SELECTED--";
 const eventFormSchema = z.object({
   id: z.string().optional(), // For editing
   type: z.enum(['event1', 'event2', 'event3'], { required_error: "Activity type is required." }),
+  session: z.enum(["Zing", "Chawhnu", "Zan"]).optional(),
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   date: z.date({ required_error: "Date is required." }),
   endDate: z.date().optional(),
   imageUrl: z.string().url("Invalid URL, ensure it's a full URL.").optional().or(z.literal('')).or(z.literal(NO_IMAGE_SELECTED_VALUE)),
-}).refine(data => {
-  if (data.endDate && data.date > data.endDate) {
-    return false;
+}).superRefine((data, ctx) => {
+  if (data.endDate && data.date && data.date > data.endDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "End date cannot be earlier than the start date.",
+      path: ["endDate"],
+    });
   }
-  return true;
-}, {
-  message: "End date cannot be earlier than the start date.",
-  path: ["endDate"],
+  if (data.type === 'event1' && !data.session) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Session is required for Rawngbawlna.",
+      path: ["session"],
+    });
+  }
 });
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
@@ -102,7 +110,8 @@ export default function AdminDashboardPage() {
       description: "",
       date: undefined,
       endDate: undefined,
-      type: undefined, // Set to undefined as it's mandatory
+      type: undefined, 
+      session: undefined,
       imageUrl: NO_IMAGE_SELECTED_VALUE,
     },
   });
@@ -139,7 +148,7 @@ export default function AdminDashboardPage() {
           title: data.title,
           description: data.description,
           date: Timestamp.fromDate(data.date as Date),
-          type: data.type, // Type is now mandatory and will be one of 'event1', 'event2', 'event3'
+          type: data.type,
           updatedAt: serverTimestamp(),
         };
 
@@ -147,6 +156,12 @@ export default function AdminDashboardPage() {
           eventData.endDate = Timestamp.fromDate(data.endDate);
         } else {
           eventData.endDate = null;
+        }
+
+        if (data.type === 'event1') {
+          eventData.session = data.session;
+        } else {
+          eventData.session = null; // Or delete field from Firestore
         }
 
         if (data.imageUrl && data.imageUrl !== NO_IMAGE_SELECTED_VALUE && data.imageUrl.trim() !== "") {
@@ -178,6 +193,7 @@ export default function AdminDashboardPage() {
             date: undefined,
             endDate: undefined,
             type: undefined,
+            session: undefined,
             imageUrl: NO_IMAGE_SELECTED_VALUE
         });
         setCurrentEvent(null);
@@ -210,7 +226,8 @@ export default function AdminDashboardPage() {
           description: data.description || "",
           date: data.date instanceof Timestamp ? data.date.toDate() : new Date(),
           endDate: data.endDate instanceof Timestamp ? data.endDate.toDate() : undefined,
-          type: data.type as EventFormValues['type'] || undefined, // Ensure type matches or is undefined
+          type: data.type as EventFormValues['type'] || undefined, 
+          session: data.session as EventFormValues['session'] || undefined,
           imageUrl: data.imageUrl || NO_IMAGE_SELECTED_VALUE,
         };
       });
@@ -234,7 +251,8 @@ export default function AdminDashboardPage() {
       description: event.description,
       date: event.date,
       endDate: event.endDate,
-      type: event.type, // type will be one of 'event1', 'event2', 'event3' or undefined
+      type: event.type, 
+      session: event.type === 'event1' ? event.session : undefined,
       imageUrl: event.imageUrl || NO_IMAGE_SELECTED_VALUE,
     });
     setIsEditEventDialogOpen(true);
@@ -248,6 +266,7 @@ export default function AdminDashboardPage() {
         date: undefined,
         endDate: undefined,
         type: undefined,
+        session: undefined,
         imageUrl: NO_IMAGE_SELECTED_VALUE
     });
     setIsAddEventDialogOpen(true);
@@ -306,7 +325,15 @@ export default function AdminDashboardPage() {
           control={form.control}
           name="type"
           render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value || undefined}>
+            <Select 
+              onValueChange={(value) => {
+                field.onChange(value);
+                if (value !== 'event1') {
+                  form.setValue('session', undefined); // Reset session if not event1
+                }
+              }} 
+              value={field.value || undefined}
+            >
               <SelectTrigger id="type">
                 <SelectValue placeholder="Select activity type" />
               </SelectTrigger>
@@ -320,6 +347,30 @@ export default function AdminDashboardPage() {
         />
         {form.formState.errors.type && <p className="text-xs text-destructive mt-1">{form.formState.errors.type.message}</p>}
       </div>
+
+      {watchedActivityType === 'event1' && (
+        <div>
+          <Label htmlFor="session" className="flex items-center gap-1 mb-1"><Clock className="h-4 w-4" />Session</Label>
+          <Controller
+            control={form.control}
+            name="session"
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value || undefined}>
+                <SelectTrigger id="session">
+                  <SelectValue placeholder="Select session" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Zing">Zing</SelectItem>
+                  <SelectItem value="Chawhnu">Chawhnu</SelectItem>
+                  <SelectItem value="Zan">Zan</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {form.formState.errors.session && <p className="text-xs text-destructive mt-1">{form.formState.errors.session.message}</p>}
+        </div>
+      )}
+
       <div>
         <Label htmlFor="title" className="flex items-center gap-1 mb-1"><FileText className="h-4 w-4" />Title</Label>
         <Input id="title" {...form.register("title")} placeholder={titlePlaceholder} />
@@ -425,6 +476,9 @@ export default function AdminDashboardPage() {
               <div className="flex flex-col sm:flex-row sm:items-center gap-x-2 gap-y-1 flex-grow min-w-0">
                 <p className="font-medium text-sm text-foreground truncate">{event.title}</p>
                 <Badge variant={eventTypeVariant} className="text-xs whitespace-nowrap w-fit">{eventTypeLabel}</Badge>
+                {event.type === 'event1' && event.session && (
+                  <Badge variant="outline" className="text-xs whitespace-nowrap w-fit">{event.session}</Badge>
+                )}
                 <p className="text-xs text-muted-foreground sm:ml-auto">{format(event.date as Date, "PPP")}</p>
               </div>
               <div className="flex-shrink-0 ml-2">
