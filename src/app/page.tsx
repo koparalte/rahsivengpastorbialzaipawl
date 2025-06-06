@@ -36,6 +36,12 @@ interface Event {
   session?: 'Zing' | 'Chawhnu' | 'Zan';
 }
 
+const sessionOrder: Record<NonNullable<Event['session']>, number> = {
+  'Zing': 1,
+  'Chawhnu': 2,
+  'Zan': 3,
+};
+
 export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
   const [currentMonth, setCurrentMonth] = React.useState<Date | undefined>(undefined);
@@ -329,19 +335,33 @@ export default function DashboardPage() {
 
 
   const eventsForSelectedDay = selectedDate
-    ? events.filter(event => {
-        const sDate = startOfDay(selectedDate);
-        const eventStartDate = startOfDay(event.date);
-        const validEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) ? endOfDay(event.endDate) : undefined;
+    ? events
+        .filter(event => {
+          const sDate = startOfDay(selectedDate);
+          const eventStartDate = startOfDay(event.date);
+          const validEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) ? endOfDay(event.endDate) : undefined;
 
-        if (validEndDate && !isSameDay(eventStartDate, validEndDate)) { 
-          const intervalStart = eventStartDate < validEndDate ? eventStartDate : validEndDate;
-          const intervalEnd = eventStartDate < validEndDate ? validEndDate : eventStartDate;
-          return isWithinInterval(sDate, { start: intervalStart, end: intervalEnd });
-        } else { 
-          return isSameDay(eventStartDate, sDate);
-        }
-      })
+          if (validEndDate && !isSameDay(eventStartDate, validEndDate)) { 
+            const intervalStart = eventStartDate < validEndDate ? eventStartDate : validEndDate;
+            const intervalEnd = eventStartDate < validEndDate ? validEndDate : eventStartDate;
+            return isWithinInterval(sDate, { start: intervalStart, end: intervalEnd });
+          } else { 
+            return isSameDay(eventStartDate, sDate);
+          }
+        })
+        .sort((a, b) => {
+          const aIsEvent1 = a.type === 'event1';
+          const bIsEvent1 = b.type === 'event1';
+
+          const aSessionValue = aIsEvent1 && a.session ? sessionOrder[a.session] : Infinity;
+          const bSessionValue = bIsEvent1 && b.session ? sessionOrder[b.session] : Infinity;
+
+          if (aSessionValue !== bSessionValue) {
+            return aSessionValue - bSessionValue;
+          }
+          // Fallback sort by title if sessions are the same or not applicable
+          return (a.title || "").localeCompare(b.title || "");
+        })
     : [];
 
   const sundayMatcher = { dayOfWeek: [0] };
@@ -516,7 +536,7 @@ export default function DashboardPage() {
                           <div
                             ref={eventsContainerRef}
                             className={cn(
-                              "pb-2 space-y-4" 
+                              "pb-2 space-y-4" // Changed from flex-row to stack vertically
                             )}
                           >
                             {eventsForSelectedDay.map(event => {
