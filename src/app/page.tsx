@@ -33,6 +33,7 @@ interface Event {
   description: string;
   type?: 'event1' | 'event2' | 'event3' | string;
   imageUrl?: string;
+  session?: 'Zing' | 'Chawhnu' | 'Zan';
 }
 
 export default function DashboardPage() {
@@ -182,6 +183,14 @@ export default function DashboardPage() {
             console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " has an 'imageUrl' field that is not a string.");
           }
         }
+        
+        let eventSession: Event['session'] | undefined = undefined;
+        if (data.session && (data.session === 'Zing' || data.session === 'Chawhnu' || data.session === 'Zan')) {
+            eventSession = data.session;
+        } else if (data.session && data.session.trim() !== "") { // Check if session exists and is not empty before warning
+            console.warn(`[Firestore Data Check] Document with ID ${docSnap.id} has an invalid 'session' field: '${data.session}'. It will be ignored.`);
+        }
+
 
         return {
           id: docSnap.id,
@@ -191,6 +200,7 @@ export default function DashboardPage() {
           description: data.description || "No description available.",
           type: eventType,
           imageUrl: eventImageUrl,
+          session: eventSession,
         };
       });
       setEvents(fetchedEvents);
@@ -506,10 +516,7 @@ export default function DashboardPage() {
                           <div
                             ref={eventsContainerRef}
                             className={cn(
-                              "pb-2", 
-                              eventsForSelectedDay.length > 1
-                                ? "space-y-4" // Stack vertically with space
-                                : "" 
+                              "pb-2 space-y-4" 
                             )}
                           >
                             {eventsForSelectedDay.map(event => {
@@ -545,7 +552,9 @@ export default function DashboardPage() {
                                     title={event.title}
                                     description={event.description}
                                     imageUrl={event.imageUrl}
-                                    displayDate={displayDateString} 
+                                    displayDate={displayDateString}
+                                    session={event.session}
+                                    eventType={event.type}
                                   />
                                 </div>
                               );

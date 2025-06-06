@@ -11,9 +11,11 @@ interface EventCardProps {
   description: string;
   imageUrl?: string;
   displayDate?: string; // Formatted date string (e.g., "25 Mar" or "25 Mar - 27 Mar")
+  session?: 'Zing' | 'Chawhnu' | 'Zan';
+  eventType?: 'event1' | 'event2' | 'event3' | string;
 }
 
-export function EventCard({ title, description, imageUrl, displayDate }: EventCardProps) {
+export function EventCard({ title, description, imageUrl, displayDate, session, eventType }: EventCardProps) {
   const hasImage = !!imageUrl;
 
   return (
@@ -32,9 +34,15 @@ export function EventCard({ title, description, imageUrl, displayDate }: EventCa
             className="absolute inset-0 z-0"
             data-ai-hint="event abstract"
           />
-          {displayDate && (
-            <div className="absolute top-2 left-2 z-30 bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded">
-              {displayDate}
+          {(displayDate || (eventType === 'event1' && session)) && (
+            <div className="absolute top-2 left-2 z-30 bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded flex items-center gap-1">
+              {displayDate && <span>{displayDate}</span>}
+              {eventType === 'event1' && session && (
+                <>
+                  {displayDate && <span className="border-l border-white/50 pl-1 ml-1"></span>}
+                  <span>{session}</span>
+                </>
+              )}
             </div>
           )}
         </>
@@ -51,7 +59,7 @@ export function EventCard({ title, description, imageUrl, displayDate }: EventCa
         {/* Inner content wrapper with padding */}
         <div className={cn(
           "flex-grow flex flex-col",
-          (hasImage && displayDate) ? "pt-10 px-4 pb-4" : "p-4" // More top padding if date overlay is present
+          (hasImage && (displayDate || (eventType === 'event1' && session))) ? "pt-10 px-4 pb-4" : "p-4" // More top padding if date/session overlay is present
         )}>
           <CardHeader className="p-0 pb-2">
             <div className="flex items-center gap-2">
@@ -69,4 +77,3 @@ export function EventCard({ title, description, imageUrl, displayDate }: EventCa
     </Card>
   );
 }
-
