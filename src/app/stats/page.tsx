@@ -329,13 +329,7 @@ export default function EventStatsPage() {
           </Card>
 
           <Card className="shadow-xl">
-            <CardHeader>
-              <CardTitle>Activity Counts by Type (Monthly Chart - All Events)</CardTitle>
-              <CardDescription>
-                This chart displays the number of Rawngbawlna, Hla Zir, and Others activities recorded each month (includes upcoming).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="min-h-[300px]">
+            <CardContent className="min-h-[300px] pt-6">
               {isLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
@@ -385,4 +379,3 @@ export default function EventStatsPage() {
     </div>
   );
 }
-
