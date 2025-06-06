@@ -12,7 +12,7 @@ import { ChartContainer, ChartTooltipContent, type ChartConfig } from "@/compone
 import { db, firebaseInitializationError } from '@/lib/firebase';
 import { collection, onSnapshot, QueryDocumentSnapshot, DocumentData, Timestamp } from "firebase/firestore";
 import { useEffect, useState, useMemo } from 'react';
-import { format, startOfMonth, parseISO, isSameDay } from 'date-fns';
+import { format, startOfMonth, parseISO, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -72,6 +72,15 @@ const getEventTypeStyle = (type?: 'event1' | 'event2' | 'event3' | string): { la
   }
 };
 
+const isEventPastOrCurrent = (event: DetailedEvent): boolean => {
+  const today = startOfDay(new Date());
+  // Use endDate if it exists and is valid, otherwise use the start date.
+  const eventEffectiveEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) 
+    ? startOfDay(event.endDate) 
+    : startOfDay(event.date);
+  return eventEffectiveEndDate <= today;
+};
+
 export default function EventStatsPage() {
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStat[]>([]);
   const [allDetailedEvents, setAllDetailedEvents] = useState<DetailedEvent[]>([]);
@@ -100,12 +109,14 @@ export default function EventStatsPage() {
         const eventDate = data.date instanceof Timestamp ? data.date.toDate() : new Date();
         const eventEndDate = data.endDate instanceof Timestamp ? data.endDate.toDate() : undefined;
         
+        // For the chart, include all events
         fetchedChartEvents.push({
           id: docSnap.id,
           date: eventDate,
           type: data.type,
         });
         
+        // For the detailed list, also include all initially
         fetchedDetailedEvents.push({
             id: docSnap.id,
             title: data.title || "Untitled Event",
@@ -116,8 +127,9 @@ export default function EventStatsPage() {
         });
       });
 
-      setAllDetailedEvents(fetchedDetailedEvents);
+      setAllDetailedEvents(fetchedDetailedEvents); // Store all events for potential other uses
 
+      // --- Monthly Chart Stats (uses all events) ---
       const statsByMonth: Record<string, Omit<MonthlyStat, 'month'>> = {};
       fetchedChartEvents.forEach(event => {
         const monthKey = format(startOfMonth(event.date), "yyyy-MM");
@@ -154,8 +166,9 @@ export default function EventStatsPage() {
             const dateB = parseISO(keyB + "-01");
             return dateA.getTime() - dateB.getTime();
         });
-
       setMonthlyStats(formattedStats);
+      // --- End Monthly Chart Stats ---
+
       setIsLoading(false);
       setError(null);
     }, (err) => {
@@ -167,21 +180,25 @@ export default function EventStatsPage() {
     return () => unsubscribe();
   }, []);
 
+  const pastOrCurrentDetailedEvents = useMemo(() => {
+    return allDetailedEvents.filter(isEventPastOrCurrent);
+  }, [allDetailedEvents]);
+
   const totalCounts = useMemo(() => {
     let event1 = 0;
     let event2 = 0;
     let event3 = 0;
-    allDetailedEvents.forEach(event => {
+    pastOrCurrentDetailedEvents.forEach(event => {
       if (event.type === 'event1') event1++;
       else if (event.type === 'event2') event2++;
       else if (event.type === 'event3') event3++;
     });
     return { event1, event2, event3 };
-  }, [allDetailedEvents]);
+  }, [pastOrCurrentDetailedEvents]);
 
   const groupedEventsByMonth = useMemo(() => {
     const groups: Record<string, DetailedEvent[]> = {};
-    allDetailedEvents.forEach(event => {
+    pastOrCurrentDetailedEvents.forEach(event => {
       const monthKey = format(startOfMonth(event.date), "yyyy-MM");
       if (!groups[monthKey]) {
         groups[monthKey] = [];
@@ -203,9 +220,9 @@ export default function EventStatsPage() {
       });
     }
     return groups;
-  }, [allDetailedEvents]);
+  }, [pastOrCurrentDetailedEvents]);
 
-  const sortedMonthKeys = useMemo(() => Object.keys(groupedEventsByMonth).sort((a,b) => new Date(a).getTime() - new Date(b).getTime()), [groupedEventsByMonth]);
+  const sortedMonthKeys = useMemo(() => Object.keys(groupedEventsByMonth).sort((a,b) => new Date(b).getTime() - new Date(a).getTime()), [groupedEventsByMonth]); // Sort recent months first
 
   return (
     <div className="flex min-h-screen w-full flex-col">
@@ -227,9 +244,9 @@ export default function EventStatsPage() {
 
           <Card className="shadow-xl">
             <CardHeader>
-              <CardTitle>Activity Counts by Type (Monthly Chart)</CardTitle>
+              <CardTitle>Activity Counts by Type (Monthly Chart - All Events)</CardTitle>
               <CardDescription>
-                This chart displays the number of Rawngbawlna, Hla Zir, and Others activities recorded each month.
+                This chart displays the number of Rawngbawlna, Hla Zir, and Others activities recorded each month (includes upcoming).
               </CardDescription>
             </CardHeader>
             <CardContent className="min-h-[300px]">
@@ -280,10 +297,10 @@ export default function EventStatsPage() {
             <CardHeader>
               <div className="flex items-center gap-2 mb-2">
                 <ListChecks className="h-6 w-6 text-primary" />
-                <CardTitle>All Activities Count</CardTitle>
+                <CardTitle>All Activities Count (Past & Current Only)</CardTitle>
               </div>
               <CardDescription>
-                A complete list of all activities, grouped by month, along with overall totals for key event types.
+                A complete list of all past and current activities, grouped by month, along with overall totals for key event types.
               </CardDescription>
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t">
                 <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
@@ -323,7 +340,7 @@ export default function EventStatsPage() {
                 </div>
               ) : sortedMonthKeys.length === 0 ? (
                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No detailed event data available to display.
+                  No past or current detailed event data available to display.
                 </div>
               ) : (
                 <ScrollArea className="h-[500px] pr-4">
