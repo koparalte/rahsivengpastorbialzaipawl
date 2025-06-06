@@ -280,7 +280,7 @@ export default function EventStatsPage() {
             <CardHeader>
               <div className="flex items-center gap-2 mb-2">
                 <ListChecks className="h-6 w-6 text-primary" />
-                <CardTitle>All Events Breakdown</CardTitle>
+                <CardTitle>All Activities Count</CardTitle>
               </div>
               <CardDescription>
                 A complete list of all activities, grouped by month, along with overall totals for key event types.
