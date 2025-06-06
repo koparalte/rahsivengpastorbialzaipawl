@@ -508,7 +508,7 @@ export default function DashboardPage() {
                             className={cn(
                               "pb-2", 
                               eventsForSelectedDay.length > 1
-                                ? "flex flex-row overflow-x-auto space-x-4" 
+                                ? "space-y-4" // Stack vertically with space
                                 : "" 
                             )}
                           >
@@ -538,9 +538,7 @@ export default function DashboardPage() {
                                 <div
                                   key={event.id}
                                   className={cn(
-                                    eventsForSelectedDay.length > 1
-                                      ? "w-72 md:w-80 flex-shrink-0" 
-                                      : "w-full" 
+                                    "w-full" // Each card takes full width
                                   )}
                                 >
                                   <EventCard
@@ -631,5 +629,7 @@ export default function DashboardPage() {
 
 
 
+
+    
 
     
