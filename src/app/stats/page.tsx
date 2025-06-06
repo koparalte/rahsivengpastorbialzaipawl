@@ -244,60 +244,9 @@ export default function EventStatsPage() {
 
           <Card className="shadow-xl">
             <CardHeader>
-              <CardTitle>Activity Counts by Type (Monthly Chart - All Events)</CardTitle>
-              <CardDescription>
-                This chart displays the number of Rawngbawlna, Hla Zir, and Others activities recorded each month (includes upcoming).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="min-h-[300px]">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
-                  <span className="text-muted-foreground">Loading chart data...</span>
-                </div>
-              ) : error ? (
-                <div className="text-destructive p-4 bg-destructive/10 border border-destructive rounded-md h-full flex flex-col items-center justify-center">
-                  <AlertTriangle className="mr-2 h-6 w-6" />
-                  <span className="font-semibold">Error Loading Chart</span>
-                  <p className="text-sm mt-1">{error}</p>
-                </div>
-              ) : monthlyStats.length === 0 ? (
-                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No activity data available to display statistics for chart.
-                </div>
-              ) : (
-                <ChartContainer config={chartConfig} className="h-[400px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyStats} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis 
-                        dataKey="month" 
-                        tickLine={false} 
-                        axisLine={false} 
-                        tickMargin={8}
-                        angle={-30}
-                        textAnchor="end"
-                        height={60} 
-                        interval={0}
-                      />
-                      <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
-                      <Tooltip content={<ChartTooltipContent />} cursor={true} />
-                      <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                      <Bar dataKey="rawngbawlna" fill="var(--color-rawngbawlna)" radius={[4, 4, 0, 0]} name="Rawngbawlna" />
-                      <Bar dataKey="hlaZir" fill="var(--color-hlaZir)" radius={[4, 4, 0, 0]} name="Hla Zir" />
-                      <Bar dataKey="others" fill="var(--color-others)" radius={[4, 4, 0, 0]} name="Others" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-xl">
-            <CardHeader>
               <div className="flex items-center gap-2 mb-2">
                 <ListChecks className="h-6 w-6 text-primary" />
-                <CardTitle>All Activities Count (Past & Current Only)</CardTitle>
+                <CardTitle>All Activities Count (Past &amp; Current Only)</CardTitle>
               </div>
               <CardDescription>
                 A complete list of all past and current activities, grouped by month, along with overall totals for key event types.
@@ -379,9 +328,61 @@ export default function EventStatsPage() {
             </CardContent>
           </Card>
 
+          <Card className="shadow-xl">
+            <CardHeader>
+              <CardTitle>Activity Counts by Type (Monthly Chart - All Events)</CardTitle>
+              <CardDescription>
+                This chart displays the number of Rawngbawlna, Hla Zir, and Others activities recorded each month (includes upcoming).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="min-h-[300px]">
+              {isLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
+                  <span className="text-muted-foreground">Loading chart data...</span>
+                </div>
+              ) : error ? (
+                <div className="text-destructive p-4 bg-destructive/10 border border-destructive rounded-md h-full flex flex-col items-center justify-center">
+                  <AlertTriangle className="mr-2 h-6 w-6" />
+                  <span className="font-semibold">Error Loading Chart</span>
+                  <p className="text-sm mt-1">{error}</p>
+                </div>
+              ) : monthlyStats.length === 0 ? (
+                 <div className="flex items-center justify-center h-full text-muted-foreground">
+                  No activity data available to display statistics for chart.
+                </div>
+              ) : (
+                <ChartContainer config={chartConfig} className="h-[400px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyStats} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis 
+                        dataKey="month" 
+                        tickLine={false} 
+                        axisLine={false} 
+                        tickMargin={8}
+                        angle={-30}
+                        textAnchor="end"
+                        height={60} 
+                        interval={0}
+                      />
+                      <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
+                      <Tooltip content={<ChartTooltipContent />} cursor={true} />
+                      <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                      <Bar dataKey="rawngbawlna" fill="var(--color-rawngbawlna)" radius={[4, 4, 0, 0]} name="Rawngbawlna" />
+                      <Bar dataKey="hlaZir" fill="var(--color-hlaZir)" radius={[4, 4, 0, 0]} name="Hla Zir" />
+                      <Bar dataKey="others" fill="var(--color-others)" radius={[4, 4, 0, 0]} name="Others" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              )}
+            </CardContent>
+          </Card>
+
         </div>
       </main>
       <AppFooter />
     </div>
   );
 }
+
