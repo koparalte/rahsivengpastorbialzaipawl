@@ -83,6 +83,11 @@ const bcmImageUrls = [
   { name: "BCM Venghlun", value: "https://drive.google.com/uc?export=download&id=1XCf90Hbx0gexMJfWk1RVzcMIYkKg4L2b" },
   { name: "BCM Bethel", value: "https://drive.google.com/uc?export=download&id=1KUneQwWamPFyJSHUbr-xVADfeDN80oO_" },
   { name: "BCM Sazaikawn", value: "https://drive.google.com/uc?export=download&id=1VlXtBN7CUT4JfcYOHR-p-RNRcj6BKvH_" },
+  { name: "Random Church - I", value: "https://drive.google.com/uc?export=download&id=1ieSGuV5cVFnRdhSUGeM626WUbSa0tNza" },
+  { name: "Random Church - II", value: "https://drive.google.com/uc?export=download&id=1pdgYflytg1mkJ_a6j9_5s4FXtQl-nPFq" },
+  { name: "Random Church - III", value: "https://drive.google.com/uc?export=download&id=1eY5pTLDPo4NlZ4WwN9ELemj9N5ULavVe" },
+  { name: "Random Church - IV", value: "https://drive.google.com/uc?export=download&id=1ofkvagFUBlmTzYcesjBTi1tTN7s3baxh" },
+  { name: "Random Church - V", value: "https://drive.google.com/uc?export=download&id=1v7ku27Dr-otBa0i-xFnJbTcHN4FG4Xqw" },
 ];
 
 export default function AdminDashboardPage() {
@@ -110,7 +115,7 @@ export default function AdminDashboardPage() {
       description: "",
       date: undefined,
       endDate: undefined,
-      type: undefined, 
+      type: undefined,
       session: undefined,
       imageUrl: NO_IMAGE_SELECTED_VALUE,
     },
@@ -226,7 +231,7 @@ export default function AdminDashboardPage() {
           description: data.description || "",
           date: data.date instanceof Timestamp ? data.date.toDate() : new Date(),
           endDate: data.endDate instanceof Timestamp ? data.endDate.toDate() : undefined,
-          type: data.type as EventFormValues['type'] || undefined, 
+          type: data.type as EventFormValues['type'] || undefined,
           session: data.session as EventFormValues['session'] || undefined,
           imageUrl: data.imageUrl || NO_IMAGE_SELECTED_VALUE,
         };
@@ -251,7 +256,7 @@ export default function AdminDashboardPage() {
       description: event.description,
       date: event.date,
       endDate: event.endDate,
-      type: event.type, 
+      type: event.type,
       session: event.type === 'event1' ? event.session : undefined,
       imageUrl: event.imageUrl || NO_IMAGE_SELECTED_VALUE,
     });
@@ -325,13 +330,13 @@ export default function AdminDashboardPage() {
           control={form.control}
           name="type"
           render={({ field }) => (
-            <Select 
+            <Select
               onValueChange={(value) => {
                 field.onChange(value);
                 if (value !== 'event1') {
                   form.setValue('session', undefined); // Reset session if not event1
                 }
-              }} 
+              }}
               value={field.value || undefined}
             >
               <SelectTrigger id="type">
