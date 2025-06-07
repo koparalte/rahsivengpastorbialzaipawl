@@ -212,9 +212,9 @@ export default function EventStatsPage() {
         const dateDiff = a.date.getTime() - b.date.getTime();
         if (dateDiff !== 0) return dateDiff;
 
-        if (a.type === 'event1' && b.type === 'event1') {
-          const sessionA = a.session ? sessionOrder[a.session] : Infinity;
-          const sessionB = b.session ? sessionOrder[b.session] : Infinity;
+        if (a.type === 'event1' && b.type === 'event1' && a.session && b.session) {
+          const sessionA = sessionOrder[a.session] ?? Infinity;
+          const sessionB = sessionOrder[b.session] ?? Infinity;
           if (sessionA !== sessionB) return sessionA - sessionB;
         }
         return (a.title || "").localeCompare(b.title || "");
@@ -347,29 +347,31 @@ export default function EventStatsPage() {
                   No activity data available to display statistics for chart.
                 </div>
               ) : (
-                <ChartContainer config={chartConfig} className="h-[400px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyStats} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis 
-                        dataKey="month" 
-                        tickLine={false} 
-                        axisLine={false} 
-                        tickMargin={8}
-                        angle={-30}
-                        textAnchor="end"
-                        height={60} 
-                        interval={0}
-                      />
-                      <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
-                      <Tooltip content={<ChartTooltipContent />} cursor={true} />
-                      <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                      <Bar dataKey="rawngbawlna" fill="var(--color-rawngbawlna)" radius={[4, 4, 0, 0]} name="Rawngbawlna" />
-                      <Bar dataKey="hlaZir" fill="var(--color-hlaZir)" radius={[4, 4, 0, 0]} name="Hla Zir" />
-                      <Bar dataKey="others" fill="var(--color-others)" radius={[4, 4, 0, 0]} name="Others" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+                <div className="overflow-x-auto">
+                  <ChartContainer config={chartConfig} className="h-[400px] w-full min-w-[700px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={monthlyStats} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis 
+                          dataKey="month" 
+                          tickLine={false} 
+                          axisLine={false} 
+                          tickMargin={8}
+                          angle={-30}
+                          textAnchor="end"
+                          height={60} 
+                          interval={0}
+                        />
+                        <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
+                        <Tooltip content={<ChartTooltipContent />} cursor={true} />
+                        <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                        <Bar dataKey="rawngbawlna" fill="var(--color-rawngbawlna)" radius={[4, 4, 0, 0]} name="Rawngbawlna" />
+                        <Bar dataKey="hlaZir" fill="var(--color-hlaZir)" radius={[4, 4, 0, 0]} name="Hla Zir" />
+                        <Bar dataKey="others" fill="var(--color-others)" radius={[4, 4, 0, 0]} name="Others" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -380,3 +382,4 @@ export default function EventStatsPage() {
     </div>
   );
 }
+
