@@ -46,7 +46,7 @@ const NO_IMAGE_SELECTED_VALUE = "--NO_IMAGE_SELECTED--";
 const eventFormSchema = z.object({
   id: z.string().optional(), // For editing
   type: z.enum(['event1', 'event2', 'event3'], { required_error: "Activity type is required." }),
-  session: z.enum(["Zing", "Chawhnu", "Zan"]).optional(),
+  session: z.enum(["Zing", "Chawhnu", "Zan", "Chhun leh Zan"]).optional(),
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   date: z.date({ required_error: "Date is required." }),
@@ -360,6 +360,7 @@ export default function AdminDashboardPage() {
                   <SelectValue placeholder="Select session" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="Chhun leh Zan">Chhun leh Zan (Whole Day)</SelectItem>
                   <SelectItem value="Zing">Zing</SelectItem>
                   <SelectItem value="Chawhnu">Chawhnu</SelectItem>
                   <SelectItem value="Zan">Zan</SelectItem>

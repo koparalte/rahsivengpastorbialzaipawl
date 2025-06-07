@@ -33,10 +33,11 @@ interface Event {
   description: string;
   type?: 'event1' | 'event2' | 'event3' | string;
   imageUrl?: string;
-  session?: 'Zing' | 'Chawhnu' | 'Zan';
+  session?: 'Zing' | 'Chawhnu' | 'Zan' | 'Chhun leh Zan';
 }
 
 const sessionOrder: Record<NonNullable<Event['session']>, number> = {
+  'Chhun leh Zan': 0,
   'Zing': 1,
   'Chawhnu': 2,
   'Zan': 3,
@@ -191,7 +192,7 @@ export default function DashboardPage() {
         }
         
         let eventSession: Event['session'] | undefined = undefined;
-        if (data.session && (data.session === 'Zing' || data.session === 'Chawhnu' || data.session === 'Zan')) {
+        if (data.session && (data.session === 'Zing' || data.session === 'Chawhnu' || data.session === 'Zan' || data.session === 'Chhun leh Zan')) {
             eventSession = data.session;
         } else if (data.session && data.session.trim() !== "") { // Check if session exists and is not empty before warning
             console.warn(`[Firestore Data Check] Document with ID ${docSnap.id} has an invalid 'session' field: '${data.session}'. It will be ignored.`);
@@ -536,7 +537,7 @@ export default function DashboardPage() {
                           <div
                             ref={eventsContainerRef}
                             className={cn(
-                              "pb-2 space-y-4" // Changed from flex-row to stack vertically
+                              "pb-2 space-y-4" 
                             )}
                           >
                             {eventsForSelectedDay.map(event => {
@@ -565,7 +566,7 @@ export default function DashboardPage() {
                                 <div
                                   key={event.id}
                                   className={cn(
-                                    "w-full" // Each card takes full width
+                                    "w-full" 
                                   )}
                                 >
                                   <EventCard

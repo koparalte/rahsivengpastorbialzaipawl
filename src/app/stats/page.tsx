@@ -28,7 +28,7 @@ interface DetailedEvent {
   date: Date;
   endDate?: Date;
   type?: 'event1' | 'event2' | 'event3' | string;
-  session?: 'Zing' | 'Chawhnu' | 'Zan';
+  session?: 'Zing' | 'Chawhnu' | 'Zan' | 'Chhun leh Zan';
 }
 
 interface MonthlyStat {
@@ -54,6 +54,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 const sessionOrder: Record<string, number> = {
+  'Chhun leh Zan': 0,
   'Zing': 1,
   'Chawhnu': 2,
   'Zan': 3,
@@ -241,7 +242,7 @@ export default function EventStatsPage() {
               </Link>
             </Button>
           </div>
-
+          
           <Card className="shadow-xl">
             <CardHeader>
               <div className="flex items-center gap-2 mb-2">
