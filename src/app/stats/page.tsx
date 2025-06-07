@@ -350,7 +350,7 @@ export default function EventStatsPage() {
                         margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                         barCategoryGap="20%" 
                       >
-                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} /> 
+                        <CartesianGrid strokeDasharray="3 3" /> 
                         <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
                         <YAxis 
                           dataKey="month" 
@@ -380,3 +380,4 @@ export default function EventStatsPage() {
     </div>
   );
 }
+
