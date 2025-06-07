@@ -60,22 +60,8 @@ const sessionOrder: Record<string, number> = {
   'Zan': 3,
 };
 
-const getEventTypeStyle = (type?: 'event1' | 'event2' | 'event3' | string): { label: string; variant: "default" | "secondary" | "destructive" | "outline" } => {
-  switch (type) {
-    case 'event1':
-      return { label: "Rawngbawlna", variant: "destructive" };
-    case 'event2':
-      return { label: "Hla Zir", variant: "default" };
-    case 'event3':
-      return { label: "Others", variant: "secondary" };
-    default:
-      return { label: "Event", variant: "outline" };
-  }
-};
-
 const isEventPastOrCurrent = (event: DetailedEvent): boolean => {
   const today = startOfDay(new Date());
-  // Use endDate if it exists and is valid, otherwise use the start date.
   const eventEffectiveEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) 
     ? startOfDay(event.endDate) 
     : startOfDay(event.date);
@@ -110,14 +96,12 @@ export default function EventStatsPage() {
         const eventDate = data.date instanceof Timestamp ? data.date.toDate() : new Date();
         const eventEndDate = data.endDate instanceof Timestamp ? data.endDate.toDate() : undefined;
         
-        // For the chart, include all events
         fetchedChartEvents.push({
           id: docSnap.id,
           date: eventDate,
           type: data.type,
         });
         
-        // For the detailed list, also include all initially
         fetchedDetailedEvents.push({
             id: docSnap.id,
             title: data.title || "Untitled Event",
@@ -128,9 +112,8 @@ export default function EventStatsPage() {
         });
       });
 
-      setAllDetailedEvents(fetchedDetailedEvents); // Store all events for potential other uses
+      setAllDetailedEvents(fetchedDetailedEvents); 
 
-      // --- Monthly Chart Stats (uses all events) ---
       const statsByMonth: Record<string, Omit<MonthlyStat, 'month'>> = {};
       fetchedChartEvents.forEach(event => {
         const monthKey = format(startOfMonth(event.date), "yyyy-MM");
@@ -152,19 +135,17 @@ export default function EventStatsPage() {
       
       const formattedStats: MonthlyStat[] = Object.entries(statsByMonth)
         .map(([monthKey, counts]) => ({
-          month: format(parseISO(monthKey + "-01"), "MMM yy"), // Shortened month format for Y-Axis
+          month: format(parseISO(monthKey + "-01"), "MMM yy"), 
           rawngbawlna: counts.rawngbawlna,
           hlaZir: counts.hlaZir,
           others: counts.others,
         }))
         .sort((a, b) => {
-            // Sort by actual date for correct chronological order in the chart data
             const dateA = parseISO(Object.keys(statsByMonth).find(key => format(parseISO(key + "-01"), "MMM yy") === a.month) + "-01");
             const dateB = parseISO(Object.keys(statsByMonth).find(key => format(parseISO(key + "-01"), "MMM yy") === b.month) + "-01");
             return dateA.getTime() - dateB.getTime();
         });
       setMonthlyStats(formattedStats);
-      // --- End Monthly Chart Stats ---
 
       setIsLoading(false);
       setError(null);
@@ -219,7 +200,7 @@ export default function EventStatsPage() {
     return groups;
   }, [pastOrCurrentDetailedEvents]);
 
-  const sortedMonthKeys = useMemo(() => Object.keys(groupedEventsByMonth).sort((a,b) => new Date(b).getTime() - new Date(a).getTime()), [groupedEventsByMonth]); // Sort recent months first
+  const sortedMonthKeys = useMemo(() => Object.keys(groupedEventsByMonth).sort((a,b) => new Date(b).getTime() - new Date(a).getTime()), [groupedEventsByMonth]);
 
   return (
     <div className="flex min-h-screen w-full flex-col">
@@ -296,21 +277,18 @@ export default function EventStatsPage() {
                         </h3>
                         <ul className="space-y-2">
                           {groupedEventsByMonth[monthKey].map(event => {
-                            const { label: eventTypeLabel, variant: eventTypeVariant } = getEventTypeStyle(event.type);
                             let dateDisplay = format(event.date, "PP");
                             if (event.endDate && !isSameDay(event.date, event.endDate)) {
                               dateDisplay += ` - ${format(event.endDate, "PP")}`;
                             }
-                            if (event.type === 'event1' && event.session) {
-                              dateDisplay += ` (${event.session})`;
-                            }
+                            // Removed session from dateDisplay for this specific list
                             return (
                               <li key={event.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md bg-card hover:bg-muted/50 transition-colors">
                                 <div className="flex-grow mb-2 sm:mb-0">
                                   <p className="font-medium text-card-foreground">{event.title}</p>
                                   <p className="text-xs text-muted-foreground">{dateDisplay}</p>
                                 </div>
-                                <Badge variant={eventTypeVariant} className="whitespace-nowrap self-start sm:self-center">{eventTypeLabel}</Badge>
+                                {/* Removed Badge for eventTypeLabel for this specific list */}
                               </li>
                             );
                           })}
@@ -350,7 +328,7 @@ export default function EventStatsPage() {
                         margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                         barCategoryGap="20%" 
                       >
-                        <CartesianGrid horizontal={false} vertical={true} strokeDasharray="3 3" /> 
+                        <CartesianGrid horizontal={true} vertical={false} strokeDasharray="3 3" /> 
                         <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
                         <YAxis 
                           dataKey="month" 
