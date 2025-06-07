@@ -245,9 +245,7 @@ export default function EventStatsPage() {
                 <ListChecks className="h-6 w-6 text-primary" />
                 <CardTitle>All Activities Count (Past &amp; Current Only)</CardTitle>
               </div>
-              <CardDescription>
-                A complete list of all past and current activities, grouped by month, along with overall totals for key event types.
-              </CardDescription>
+              {/* Removed CardDescription here */}
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t">
                 <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
                   <CalendarCheck className="h-5 w-5 text-destructive" />
