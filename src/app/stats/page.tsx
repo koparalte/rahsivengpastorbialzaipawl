@@ -152,19 +152,15 @@ export default function EventStatsPage() {
       
       const formattedStats: MonthlyStat[] = Object.entries(statsByMonth)
         .map(([monthKey, counts]) => ({
-          month: format(parseISO(monthKey + "-01"), "MMMM yyyy"),
+          month: format(parseISO(monthKey + "-01"), "MMM yy"), // Shortened month format for Y-Axis
           rawngbawlna: counts.rawngbawlna,
           hlaZir: counts.hlaZir,
           others: counts.others,
         }))
         .sort((a, b) => {
-            const findMonthKey = (stats: Record<string, any>, formattedMonth: string) => 
-                Object.keys(stats).find(key => format(parseISO(key + "-01"), "MMMM yyyy") === formattedMonth);
-            const keyA = findMonthKey(statsByMonth, a.month);
-            const keyB = findMonthKey(statsByMonth, b.month);
-            if (!keyA || !keyB) return 0;
-            const dateA = parseISO(keyA + "-01");
-            const dateB = parseISO(keyB + "-01");
+            // Sort by actual date for correct chronological order in the chart data
+            const dateA = parseISO(Object.keys(statsByMonth).find(key => format(parseISO(key + "-01"), "MMM yy") === a.month) + "-01");
+            const dateB = parseISO(Object.keys(statsByMonth).find(key => format(parseISO(key + "-01"), "MMM yy") === b.month) + "-01");
             return dateA.getTime() - dateB.getTime();
         });
       setMonthlyStats(formattedStats);
@@ -330,7 +326,7 @@ export default function EventStatsPage() {
           </Card>
 
           <Card className="shadow-xl">
-            <CardContent className="min-h-[300px] pt-6">
+            <CardContent className="min-h-[300px] pt-6"> {/* Added pt-6 for spacing since header is removed */}
               {isLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
@@ -347,27 +343,30 @@ export default function EventStatsPage() {
                   No activity data available to display statistics for chart.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <ChartContainer config={chartConfig} className="h-[400px] w-full min-w-[700px]">
+                <div className="overflow-x-auto"> {/* Ensures horizontal scroll for the chart itself if needed */}
+                  <ChartContainer config={chartConfig} className="h-[450px] w-full min-w-[600px]"> {/* Adjust min-width as needed */}
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={monthlyStats} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis 
+                      <BarChart 
+                        data={monthlyStats} 
+                        layout="vertical" 
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }} // Adjusted margins
+                      >
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} /> {/* Changed to horizontal=false for vertical grid lines */}
+                        <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
+                        <YAxis 
                           dataKey="month" 
+                          type="category" 
                           tickLine={false} 
                           axisLine={false} 
                           tickMargin={8}
-                          angle={-30}
-                          textAnchor="end"
-                          height={60} 
-                          interval={0}
+                          width={80} // Give more space for month labels
+                          interval={0} // Ensure all month labels are shown
                         />
-                        <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
-                        <Tooltip content={<ChartTooltipContent />} cursor={true} />
+                        <Tooltip content={<ChartTooltipContent />} cursor={{ fill: 'hsl(var(--muted))' }} />
                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                        <Bar dataKey="rawngbawlna" fill="var(--color-rawngbawlna)" radius={[4, 4, 0, 0]} name="Rawngbawlna" />
-                        <Bar dataKey="hlaZir" fill="var(--color-hlaZir)" radius={[4, 4, 0, 0]} name="Hla Zir" />
-                        <Bar dataKey="others" fill="var(--color-others)" radius={[4, 4, 0, 0]} name="Others" />
+                        <Bar dataKey="rawngbawlna" fill="var(--color-rawngbawlna)" radius={[0, 4, 4, 0]} name="Rawngbawlna" />
+                        <Bar dataKey="hlaZir" fill="var(--color-hlaZir)" radius={[0, 4, 4, 0]} name="Hla Zir" />
+                        <Bar dataKey="others" fill="var(--color-others)" radius={[0, 4, 4, 0]} name="Others" />
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartContainer>
