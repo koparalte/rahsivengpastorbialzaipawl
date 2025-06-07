@@ -229,7 +229,7 @@ export default function EventStatsPage() {
           <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
             <div className="flex items-center gap-3">
               <BarChart3 className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Monthly Activity Statistics</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Activity Statistics</h1>
             </div>
             <Button variant="outline" asChild className="w-full sm:w-auto">
               <Link href="/">
@@ -245,7 +245,7 @@ export default function EventStatsPage() {
                 <ListChecks className="h-6 w-6 text-primary" />
                 <CardTitle>All Activities Count (Past &amp; Current Only)</CardTitle>
               </div>
-              {/* Removed CardDescription here */}
+              
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t">
                 <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
                   <CalendarCheck className="h-5 w-5 text-destructive" />
@@ -324,7 +324,7 @@ export default function EventStatsPage() {
           </Card>
 
           <Card className="shadow-xl">
-            <CardContent className="min-h-[300px] pt-6"> {/* Added pt-6 for spacing since header is removed */}
+            <CardContent className="min-h-[300px] pt-6"> 
               {isLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
@@ -341,15 +341,15 @@ export default function EventStatsPage() {
                   No activity data available to display statistics for chart.
                 </div>
               ) : (
-                <div className="overflow-x-auto"> {/* Ensures horizontal scroll for the chart itself if needed */}
-                  <ChartContainer config={chartConfig} className="h-[450px] w-full min-w-[600px]"> {/* Adjust min-width as needed */}
+                <div className="overflow-x-auto"> 
+                  <ChartContainer config={chartConfig} className="h-[450px] w-full min-w-[600px]"> 
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart 
                         data={monthlyStats} 
                         layout="vertical" 
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }} // Adjusted margins
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }} 
                       >
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} /> {/* Changed to horizontal=false for vertical grid lines */}
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} /> 
                         <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
                         <YAxis 
                           dataKey="month" 
@@ -357,8 +357,8 @@ export default function EventStatsPage() {
                           tickLine={false} 
                           axisLine={false} 
                           tickMargin={8}
-                          width={80} // Give more space for month labels
-                          interval={0} // Ensure all month labels are shown
+                          width={80} 
+                          interval={0} 
                         />
                         <Tooltip content={<ChartTooltipContent />} cursor={{ fill: 'hsl(var(--muted))' }} />
                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
