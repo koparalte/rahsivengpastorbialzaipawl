@@ -25,6 +25,7 @@ interface ChartEvent {
 interface DetailedEvent {
   id: string;
   title: string;
+  description: string; // Added description
   date: Date;
   endDate?: Date;
   type?: 'event1' | 'event2' | 'event3' | string;
@@ -105,6 +106,7 @@ export default function EventStatsPage() {
         fetchedDetailedEvents.push({
             id: docSnap.id,
             title: data.title || "Untitled Event",
+            description: data.description || "No description available.", // Populate description
             date: eventDate,
             endDate: eventEndDate,
             type: data.type,
@@ -281,14 +283,13 @@ export default function EventStatsPage() {
                             if (event.endDate && !isSameDay(event.date, event.endDate)) {
                               dateDisplay += ` - ${format(event.endDate, "PP")}`;
                             }
-                            // Removed session from dateDisplay for this specific list
                             return (
-                              <li key={event.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-md bg-card hover:bg-muted/50 transition-colors">
-                                <div className="flex-grow mb-2 sm:mb-0">
+                              <li key={event.id} className="flex flex-col p-3 border rounded-md bg-card hover:bg-muted/50 transition-colors">
+                                <div className="flex-grow mb-1">
                                   <p className="font-medium text-card-foreground">{event.title}</p>
                                   <p className="text-xs text-muted-foreground">{dateDisplay}</p>
                                 </div>
-                                {/* Removed Badge for eventTypeLabel for this specific list */}
+                                <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
                               </li>
                             );
                           })}
@@ -328,7 +329,7 @@ export default function EventStatsPage() {
                         margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                         barCategoryGap="20%" 
                       >
-                        <CartesianGrid horizontal={true} vertical={false} strokeDasharray="3 3" /> 
+                        <CartesianGrid vertical={true} horizontal={false} strokeDasharray="3 3" /> 
                         <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
                         <YAxis 
                           dataKey="month" 
