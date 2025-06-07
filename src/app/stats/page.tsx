@@ -347,7 +347,8 @@ export default function EventStatsPage() {
                       <BarChart 
                         data={monthlyStats} 
                         layout="vertical" 
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }} 
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        barCategoryGap="20%" 
                       >
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} /> 
                         <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
