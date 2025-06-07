@@ -6,7 +6,7 @@ import { AppHeader } from '@/components/layout/header';
 import { AppFooter } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowLeft, Loader2, AlertTriangle, BarChart3, ListChecks, CalendarCheck, CalendarClock, Package } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertTriangle, BarChart3, ListChecks, CalendarCheck, CalendarClock, Package, CalendarDays, Users } from 'lucide-react'; // Added CalendarDays, Users
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { db, firebaseInitializationError } from '@/lib/firebase';
@@ -15,6 +15,14 @@ import { useEffect, useState, useMemo } from 'react';
 import { format, startOfMonth, parseISO, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog"; // Added Dialog components
 
 interface ChartEvent {
   id: string;
@@ -25,7 +33,7 @@ interface ChartEvent {
 interface DetailedEvent {
   id: string;
   title: string;
-  description: string; // Added description
+  description: string;
   date: Date;
   endDate?: Date;
   type?: 'event1' | 'event2' | 'event3' | string;
@@ -69,11 +77,26 @@ const isEventPastOrCurrent = (event: DetailedEvent): boolean => {
   return eventEffectiveEndDate <= today;
 };
 
+const getEventTypeLabel = (type?: DetailedEvent['type']): string => {
+  switch (type) {
+    case 'event1':
+      return "Rawngbawlna";
+    case 'event2':
+      return "Hla Zir";
+    case 'event3':
+      return "Others";
+    default:
+      return "Event";
+  }
+};
+
 export default function EventStatsPage() {
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStat[]>([]);
   const [allDetailedEvents, setAllDetailedEvents] = useState<DetailedEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedEventForDialog, setSelectedEventForDialog] = useState<DetailedEvent | null>(null);
+  const [isEventDetailDialogOpen, setIsEventDetailDialogOpen] = useState(false);
 
   useEffect(() => {
     if (firebaseInitializationError) {
@@ -106,7 +129,7 @@ export default function EventStatsPage() {
         fetchedDetailedEvents.push({
             id: docSnap.id,
             title: data.title || "Untitled Event",
-            description: data.description || "No description available.", // Populate description
+            description: data.description || "No description available.",
             date: eventDate,
             endDate: eventEndDate,
             type: data.type,
@@ -204,6 +227,20 @@ export default function EventStatsPage() {
 
   const sortedMonthKeys = useMemo(() => Object.keys(groupedEventsByMonth).sort((a,b) => new Date(b).getTime() - new Date(a).getTime()), [groupedEventsByMonth]);
 
+  const handleEventCardClick = (event: DetailedEvent) => {
+    setSelectedEventForDialog(event);
+    setIsEventDetailDialogOpen(true);
+  };
+
+  const renderDialogDate = (event: DetailedEvent): string => {
+    if (!event.date) return "N/A";
+    let dateStr = format(event.date, "PPP");
+    if (event.endDate && !isSameDay(event.date, event.endDate)) {
+      dateStr += ` - ${format(event.endDate, "PPP")}`;
+    }
+    return dateStr;
+  };
+
   return (
     <div className="flex min-h-screen w-full flex-col">
       <AppHeader />
@@ -284,12 +321,20 @@ export default function EventStatsPage() {
                               dateDisplay += ` - ${format(event.endDate, "PP")}`;
                             }
                             return (
-                              <li key={event.id} className="flex flex-col p-3 border rounded-md bg-card hover:bg-muted/50 transition-colors">
+                              <li 
+                                key={event.id} 
+                                className="flex flex-col p-3 border rounded-md bg-card hover:bg-muted/50 transition-colors cursor-pointer"
+                                onClick={() => handleEventCardClick(event)}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleEventCardClick(event);}}
+                                aria-label={`View details for ${event.title}`}
+                              >
                                 <div className="flex-grow mb-1">
                                   <p className="font-medium text-card-foreground">{event.title}</p>
                                   <p className="text-xs text-muted-foreground">{dateDisplay}</p>
                                 </div>
-                                <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{event.description}</p>
                               </li>
                             );
                           })}
@@ -352,11 +397,57 @@ export default function EventStatsPage() {
               )}
             </CardContent>
           </Card>
-
         </div>
       </main>
       <AppFooter />
+
+      {selectedEventForDialog && (
+        <Dialog open={isEventDetailDialogOpen} onOpenChange={setIsEventDetailDialogOpen}>
+          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {selectedEventForDialog.type === 'event1' && <CalendarCheck className="h-5 w-5 text-destructive" />}
+                {selectedEventForDialog.type === 'event2' && <CalendarClock className="h-5 w-5 text-primary" />}
+                {selectedEventForDialog.type === 'event3' && <Package className="h-5 w-5 text-accent" />}
+                {!['event1', 'event2', 'event3'].includes(selectedEventForDialog.type || '') && <CalendarDays className="h-5 w-5 text-muted-foreground" />}
+                {selectedEventForDialog.title}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-3 py-4 text-sm">
+              <div className="grid grid-cols-[auto_1fr] items-start gap-x-3">
+                <strong className="text-muted-foreground whitespace-nowrap">Date:</strong>
+                <span>{renderDialogDate(selectedEventForDialog)}</span>
+              </div>
+
+              {selectedEventForDialog.type && (
+                <div className="grid grid-cols-[auto_1fr] items-start gap-x-3">
+                  <strong className="text-muted-foreground">Type:</strong>
+                  <span>{getEventTypeLabel(selectedEventForDialog.type)}</span>
+                </div>
+              )}
+
+              {selectedEventForDialog.type === 'event1' && selectedEventForDialog.session && (
+                <div className="grid grid-cols-[auto_1fr] items-start gap-x-3">
+                  <strong className="text-muted-foreground">Session:</strong>
+                  <span>{selectedEventForDialog.session}</span>
+                </div>
+              )}
+              
+              <div className="col-span-2 pt-2">
+                <strong className="text-muted-foreground">Description:</strong>
+                <p className="mt-1 text-foreground whitespace-pre-wrap">{selectedEventForDialog.description}</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Close
+                </Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
-
