@@ -21,7 +21,7 @@ export function EventCard({ title, description, imageUrl, displayDate, session, 
   return (
     <Card
       className={cn(
-        "hover:shadow-md transition-shadow relative overflow-hidden w-full flex flex-col" // Removed h-full
+        "hover:shadow-md transition-shadow relative overflow-hidden w-full flex flex-col"
       )}
     >
       {hasImage && (
@@ -35,13 +35,21 @@ export function EventCard({ title, description, imageUrl, displayDate, session, 
             data-ai-hint="event abstract"
           />
           {(displayDate || (eventType === 'event1' && session)) && (
-            <div className="absolute top-2 left-2 z-30 bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded flex items-center gap-1">
-              {displayDate && <span>{displayDate}</span>}
+            <div className="absolute top-2 left-2 z-30 bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded flex items-center"> {/* Container for date and session */}
+              {displayDate && (
+                <span>{displayDate}</span>
+              )}
+
               {eventType === 'event1' && session && (
-                <>
-                  {displayDate && <span className="border-l border-white/50 pl-1 ml-1"></span>}
+                <div className={cn(
+                  "flex items-center",
+                  displayDate ? "ml-auto" : "" // Push to right if date is also present
+                )}>
+                  {displayDate && ( // Show separator only if date is also present
+                    <span className="border-l border-white/50 h-3 mx-1.5"></span>
+                  )}
                   <span>{session}</span>
-                </>
+                </div>
               )}
             </div>
           )}
@@ -59,7 +67,7 @@ export function EventCard({ title, description, imageUrl, displayDate, session, 
         {/* Inner content wrapper with padding */}
         <div className={cn(
           "flex-grow flex flex-col",
-          (hasImage && (displayDate || (eventType === 'event1' && session))) ? "pt-10 px-4 pb-4" : "p-4" // More top padding if date/session overlay is present
+          (hasImage && (displayDate || (eventType === 'event1' && session))) ? "pt-10 px-4 pb-4" : "p-4" 
         )}>
           <CardHeader className="p-0 pb-2">
             <div className="flex items-center gap-2">
