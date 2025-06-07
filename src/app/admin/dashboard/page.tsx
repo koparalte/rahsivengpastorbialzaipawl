@@ -83,6 +83,7 @@ const bcmImageUrls = [
   { name: "BCM Venghlun", value: "https://drive.google.com/uc?export=download&id=1XCf90Hbx0gexMJfWk1RVzcMIYkKg4L2b" },
   { name: "BCM Bethel", value: "https://drive.google.com/uc?export=download&id=1KUneQwWamPFyJSHUbr-xVADfeDN80oO_" },
   { name: "BCM Sazaikawn", value: "https://drive.google.com/uc?export=download&id=1VlXtBN7CUT4JfcYOHR-p-RNRcj6BKvH_" },
+  { name: "BCM Chanmari", value: "https://drive.google.com/uc?export=download&id=14pXVKbM8lfpLvuANbWnwwOh6l4LhsS-p" },
   { name: "Random Church - I", value: "https://drive.google.com/uc?export=download&id=1ieSGuV5cVFnRdhSUGeM626WUbSa0tNza" },
   { name: "Random Church - II", value: "https://drive.google.com/uc?export=download&id=1pdgYflytg1mkJ_a6j9_5s4FXtQl-nPFq" },
   { name: "Random Church - III", value: "https://drive.google.com/uc?export=download&id=1eY5pTLDPo4NlZ4WwN9ELemj9N5ULavVe" },
