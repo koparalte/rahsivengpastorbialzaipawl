@@ -34,22 +34,23 @@ export function EventCard({ title, description, imageUrl, displayDate, session, 
             className="absolute inset-0 z-0"
             data-ai-hint="event abstract"
           />
+          {/* Date/Session Badge Overlay */}
           {(displayDate || (eventType === 'event1' && session)) && (
-            <div className="absolute top-2 left-2 z-30 bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded flex items-center"> {/* Container for date and session */}
+            <div className="absolute top-2 left-2 right-2 z-30 bg-black/70 text-white text-xs font-semibold px-2 py-1 rounded flex items-center justify-between">
+              {/* Date part (always on the left if it exists) */}
               {displayDate && (
-                <span>{displayDate}</span>
+                <span className="truncate">{displayDate}</span>
               )}
 
+              {/* Session part (conditionally on the right) */}
               {eventType === 'event1' && session && (
-                <div className={cn(
+                <span className={cn(
                   "flex items-center",
-                  displayDate ? "ml-auto" : "" // Push to right if date is also present
+                  !displayDate ? "ml-auto" : "" // If only session is displayed, push it to the right. Otherwise, justify-between handles.
                 )}>
-                  {displayDate && ( // Show separator only if date is also present
-                    <span className="border-l border-white/50 h-3 mx-1.5"></span>
-                  )}
-                  <span>{session}</span>
-                </div>
+                  {displayDate && (<span className="border-l border-white/50 h-3 mx-1.5" aria-hidden="true"></span>)}
+                  <span className="truncate">{session}</span>
+                </span>
               )}
             </div>
           )}
@@ -67,7 +68,7 @@ export function EventCard({ title, description, imageUrl, displayDate, session, 
         {/* Inner content wrapper with padding */}
         <div className={cn(
           "flex-grow flex flex-col",
-          (hasImage && (displayDate || (eventType === 'event1' && session))) ? "pt-10 px-4 pb-4" : "p-4" 
+          (hasImage && (displayDate || (eventType === 'event1' && session))) ? "pt-10 px-4 pb-4" : "p-4"
         )}>
           <CardHeader className="p-0 pb-2">
             <div className="flex items-center gap-2">
