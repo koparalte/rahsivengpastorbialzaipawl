@@ -108,11 +108,14 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
     return events
       .filter(event => {
         const eventStartDate = startOfDay(event.date);
-        const eventMatchesType = targetFirestoreType ? event.type === targetFirestoreType : (event.type !== 'event1' && event.type !== 'event2'); // Adjust for "others" if it means non-event1/event2
+        const eventMatchesType = targetFirestoreType ? event.type === targetFirestoreType : (event.type !== 'event1' && event.type !== 'event2');
 
         let eventIsInCurrentMonth = false;
         const validEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) ? endOfDay(event.endDate) : undefined;
 
+        // This logic determines if an event (single or multi-day) falls within the current calendar month.
+        // It includes all events - past, present, and future days - as long as they are part of the current month,
+        // based on currentMonthStart and currentMonthEnd derived from new Date().
         if (validEndDate && !isSameDay(eventStartDate, validEndDate)) {
           const interval = { start: eventStartDate, end: validEndDate };
           eventIsInCurrentMonth =
