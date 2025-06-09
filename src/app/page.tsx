@@ -14,7 +14,7 @@ import {
 import Link from 'next/link';
 import { DashboardBanner } from '@/components/dashboard/dashboard-banner';
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"; // Card components already imported
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { EventCard } from '@/components/dashboard/event-card';
 import { isSameDay, format, isSameMonth, startOfDay, endOfDay, isWithinInterval, addDays, subDays } from 'date-fns';
@@ -51,7 +51,7 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [eventsError, setEventsError] = useState<string | null>(null);
-  
+
   const [eventType1Count, setEventType1Count] = useState(0);
   const [eventType2Count, setEventType2Count] = useState(0);
   const [eventType3Count, setEventType3Count] = useState(0);
@@ -59,56 +59,42 @@ export default function DashboardPage() {
   const firebaseBannerImageUrl: string | undefined = "https://drive.google.com/uc?export=download&id=1dweAS9U6MDBV2X246Xf8IWzwXyVM24G1";
 
   const eventsContainerRef = useRef<HTMLDivElement>(null);
-  
+
   const [canGoToPreviousEventDay, setCanGoToPreviousEventDay] = useState(false);
   const [canGoToNextEventDay, setCanGoToNextEventDay] = useState(false);
 
   useEffect(() => {
-    // This effect runs once on mount to set the initial calendar month
-    // and mark the component as mounted.
-    setCurrentMonth(new Date()); // Default calendar view to current month
+    setCurrentMonth(new Date());
     setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    // This effect runs when events are loaded or isMounted/isLoadingEvents changes.
-    // It sets the initial selectedDate if it hasn't been set yet (i.e., selectedDate is undefined).
     if (isMounted && !isLoadingEvents && selectedDate === undefined) {
       if (events.length > 0) {
         const today = startOfDay(new Date());
-        
-        // Find events that are ongoing or in the future
         const relevantEvents = events
           .filter(event => {
             const eventStartDate = startOfDay(event.date);
-            // Use event's start date if endDate is not present or invalid
             const eventActualEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) ? endOfDay(event.endDate) : eventStartDate;
-            return eventActualEndDate >= today; // Event ends today or later
+            return eventActualEndDate >= today;
           })
           .sort((a, b) => {
-            // Sort by start date primarily
             const startDateDiff = a.date.getTime() - b.date.getTime();
             if (startDateDiff !== 0) return startDateDiff;
-            // If start dates are the same, sort by end date (earlier end date first for ongoing)
             const aEndDate = a.endDate || a.date;
             const bEndDate = b.endDate || b.date;
             return aEndDate.getTime() - bEndDate.getTime();
           });
 
         if (relevantEvents.length > 0) {
-          // The first event in this sorted list is the nearest upcoming/ongoing
           const nearestEvent = relevantEvents[0];
-          setSelectedDate(nearestEvent.date); // Select the start date of this event
-          setCurrentMonth(nearestEvent.date); // Also move calendar to this event's month
+          setSelectedDate(nearestEvent.date);
+          setCurrentMonth(nearestEvent.date);
         } else {
-          // No upcoming or ongoing events, default to selecting today
           setSelectedDate(new Date());
-          // currentMonth is already set to today's month by the first useEffect
         }
       } else {
-        // No events at all in the system, default to selecting today
         setSelectedDate(new Date());
-        // currentMonth is already set to today's month by the first useEffect
       }
     }
   }, [isMounted, isLoadingEvents, events, selectedDate]);
@@ -151,7 +137,7 @@ export default function DashboardPage() {
       const fetchedEvents: Event[] = snapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
         const data = docSnap.data();
         const eventDate = data.date instanceof Timestamp ? data.date.toDate() : new Date();
-        
+
         if (!(data.date instanceof Timestamp)) {
             console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " in 'calendarEvents' collection has a 'date' field that is not a Firestore Timestamp. Using current date as fallback.");
         }
@@ -170,7 +156,7 @@ export default function DashboardPage() {
         if (!data.description) {
             console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " in 'calendarEvents' collection is missing the 'description' field.");
         }
-        
+
         let eventType: string | undefined = undefined;
         if (data.type) {
           if (typeof data.type === 'string' && ['event1', 'event2', 'event3'].includes(data.type)) {
@@ -190,7 +176,7 @@ export default function DashboardPage() {
             console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " has an 'imageUrl' field that is not a string.");
           }
         }
-        
+
         let eventSession: Event['session'] | undefined = undefined;
         if (data.session && (data.session === 'Zing' || data.session === 'Chawhnu' || data.session === 'Zan' || data.session === 'Chhun leh Zan')) {
             eventSession = data.session;
@@ -212,7 +198,7 @@ export default function DashboardPage() {
       });
       setEvents(fetchedEvents);
       setIsLoadingEvents(false);
-      setEventsError(null); 
+      setEventsError(null);
     }, (err: any) => {
       console.error("Error fetching events from Firestore:", err);
       setEventsError("Failed to load events from Firestore: " + err.message + ". Check browser console for details (e.g., permission errors, incorrect project config) and ensure your Firestore rules allow reads to the 'calendarEvents' collection. Also, check your terminal where 'npm run dev' is running for server-side errors.");
@@ -224,19 +210,19 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (events.length > 0 && currentMonth) { 
-      const monthToDisplay = currentMonth; 
+    if (events.length > 0 && currentMonth) {
+      const monthToDisplay = currentMonth;
       const eventsInSelectedMonth = events.filter(event => {
         const eventStartDate = startOfDay(event.date);
         const validEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) ? endOfDay(event.endDate) : undefined;
 
-        if (validEndDate && !isSameDay(eventStartDate, validEndDate)) { 
+        if (validEndDate && !isSameDay(eventStartDate, validEndDate)) {
             const intervalStart = eventStartDate < validEndDate ? eventStartDate : validEndDate;
             const intervalEnd = eventStartDate < validEndDate ? validEndDate : eventStartDate;
-            return isSameMonth(intervalStart, monthToDisplay) || 
+            return isSameMonth(intervalStart, monthToDisplay) ||
                    isSameMonth(intervalEnd, monthToDisplay) ||
                    (intervalStart < startOfDay(monthToDisplay) && intervalEnd > endOfDay(monthToDisplay));
-        } else { 
+        } else {
             return isSameMonth(eventStartDate, monthToDisplay);
         }
       });
@@ -244,7 +230,7 @@ export default function DashboardPage() {
       const count1 = eventsInSelectedMonth.filter(e => e.type === 'event1').length;
       const count2 = eventsInSelectedMonth.filter(e => e.type === 'event2').length;
       const count3 = eventsInSelectedMonth.filter(e => e.type === 'event3').length;
-      
+
       setEventType1Count(count1);
       setEventType2Count(count2);
       setEventType3Count(count3);
@@ -268,7 +254,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!selectedDate || distinctEventStartDates.length === 0) {
       setCanGoToPreviousEventDay(false);
-      setCanGoToNextEventDay(distinctEventStartDates.length > 0); 
+      setCanGoToNextEventDay(distinctEventStartDates.length > 0);
       return;
     }
     const currentDayStart = startOfDay(selectedDate);
@@ -298,7 +284,6 @@ export default function DashboardPage() {
     if (!selectedDate || distinctEventStartDates.length === 0) return;
     const currentDayStart = startOfDay(selectedDate);
     let prevEventD: Date | undefined = undefined;
-    // Find the latest event start date that is before the current selected date's start
     for (let i = distinctEventStartDates.length - 1; i >= 0; i--) {
       if (startOfDay(distinctEventStartDates[i]).getTime() < currentDayStart.getTime()) {
         prevEventD = distinctEventStartDates[i];
@@ -312,7 +297,7 @@ export default function DashboardPage() {
   };
 
   const handleNextEventDay = () => {
-    if (!selectedDate && distinctEventStartDates.length > 0) { 
+    if (!selectedDate && distinctEventStartDates.length > 0) {
         setSelectedDate(distinctEventStartDates[0]);
         setCurrentMonth(distinctEventStartDates[0]);
         return;
@@ -321,7 +306,6 @@ export default function DashboardPage() {
 
     const currentDayStart = startOfDay(selectedDate);
     let nextEventD: Date | undefined = undefined;
-    // Find the earliest event start date that is after the current selected date's start
     for (const eventDay of distinctEventStartDates) {
       if (startOfDay(eventDay).getTime() > currentDayStart.getTime()) {
         nextEventD = eventDay;
@@ -342,11 +326,11 @@ export default function DashboardPage() {
           const eventStartDate = startOfDay(event.date);
           const validEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) ? endOfDay(event.endDate) : undefined;
 
-          if (validEndDate && !isSameDay(eventStartDate, validEndDate)) { 
+          if (validEndDate && !isSameDay(eventStartDate, validEndDate)) {
             const intervalStart = eventStartDate < validEndDate ? eventStartDate : validEndDate;
             const intervalEnd = eventStartDate < validEndDate ? validEndDate : eventStartDate;
             return isWithinInterval(sDate, { start: intervalStart, end: intervalEnd });
-          } else { 
+          } else {
             return isSameDay(eventStartDate, sDate);
           }
         })
@@ -354,13 +338,13 @@ export default function DashboardPage() {
           const aIsEvent1 = a.type === 'event1';
           const bIsEvent1 = b.type === 'event1';
 
+          // Prioritize 'Chhun leh Zan' session for 'event1' types
           const aSessionValue = aIsEvent1 && a.session ? sessionOrder[a.session] : Infinity;
           const bSessionValue = bIsEvent1 && b.session ? sessionOrder[b.session] : Infinity;
-
+          
           if (aSessionValue !== bSessionValue) {
             return aSessionValue - bSessionValue;
           }
-          // Fallback sort by title if sessions are the same or not applicable
           return (a.title || "").localeCompare(b.title || "");
         })
     : [];
@@ -417,33 +401,39 @@ export default function DashboardPage() {
     hasEventType3: 'day-has-event-type3',
     hasEventDefault: 'day-has-event-default',
   };
-  
+
   const currentMonthNameForStats = isMounted && currentMonth ? format(currentMonth, 'MMMM yyyy') : 'Loading...';
-  
+
   return (
     <div className="flex min-h-screen w-full flex-col">
       <AppHeader />
       <main className="flex-1 flex-col items-center justify-start gap-6 p-4 md:gap-8 md:p-6 lg:p-8 bg-background">
         <div className="w-full max-w-7xl mx-auto space-y-8">
-          
+
           <DashboardBanner bannerImageUrl={firebaseBannerImageUrl} />
 
           <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
-            <SummaryCard 
-              title={"Rawngbawlna " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
-              value={eventType1Count.toString()}
-              icon={CalendarCheck}
-            />
-            <SummaryCard 
-              title={"Hla zir " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
-              value={eventType2Count.toString()}
-              icon={CalendarClock}
-            />
-            <SummaryCard 
-              title={"Others " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
-              value={eventType3Count.toString()}
-              icon={Package}
-            />
+            <Link href="/monthly-activities/rawngbawlna" passHref>
+              <SummaryCard
+                title={"Rawngbawlna " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
+                value={eventType1Count.toString()}
+                icon={CalendarCheck}
+              />
+            </Link>
+            <Link href="/monthly-activities/hla-zir" passHref>
+              <SummaryCard
+                title={"Hla zir " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
+                value={eventType2Count.toString()}
+                icon={CalendarClock}
+              />
+            </Link>
+            <Link href="/monthly-activities/others" passHref>
+              <SummaryCard
+                title={"Others " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
+                value={eventType3Count.toString()}
+                icon={Package}
+              />
+            </Link>
             <Link href="/stats" passHref>
               <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center text-center p-3 cursor-pointer h-full bg-card hover:bg-muted/50">
                 <CardHeader className="p-1 pb-1 flex flex-col items-center">
@@ -537,23 +527,23 @@ export default function DashboardPage() {
                           <div
                             ref={eventsContainerRef}
                             className={cn(
-                              "pb-2 space-y-4" 
+                              "pb-2 space-y-4"
                             )}
                           >
                             {eventsForSelectedDay.map(event => {
                               let displayDateString: string | undefined = undefined;
-                              if (event.date instanceof Date && !isNaN(event.date.getTime())) { 
-                                const sDay = startOfDay(event.date); 
+                              if (event.date instanceof Date && !isNaN(event.date.getTime())) {
+                                const sDay = startOfDay(event.date);
                                 let isMultiDayEvent = false;
-                              
+
                                 if (event.endDate instanceof Date && !isNaN(event.endDate.getTime())) {
-                                  const eDay = startOfDay(event.endDate); 
+                                  const eDay = startOfDay(event.endDate);
                                   if (!isSameDay(sDay, eDay)) {
                                     isMultiDayEvent = true;
                                   }
                                 }
-                              
-                                if (isMultiDayEvent && event.endDate instanceof Date && !isNaN(event.endDate.getTime())) { 
+
+                                if (isMultiDayEvent && event.endDate instanceof Date && !isNaN(event.endDate.getTime())) {
                                   const from = event.date < event.endDate ? event.date : event.endDate;
                                   const to = event.date < event.endDate ? event.endDate : event.date;
                                   displayDateString = format(from, 'dd MMM') + " - " + format(to, 'dd MMM');
@@ -566,7 +556,7 @@ export default function DashboardPage() {
                                 <div
                                   key={event.id}
                                   className={cn(
-                                    "w-full" 
+                                    "w-full"
                                   )}
                                 >
                                   <EventCard
@@ -596,7 +586,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
-            
+
             <div className="lg:col-span-1 space-y-6">
               <Card className="shadow-lg w-full">
                  <CardHeader className="p-4">
@@ -610,26 +600,26 @@ export default function DashboardPage() {
                       <span className="text-xs text-card-foreground uppercase font-bold">HLA ZIR</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: 'hsl(var(--chart-3))' }} /> 
+                      <span className="h-3 w-3 rounded-full inline-block" style={{ backgroundColor: 'hsl(var(--chart-3))' }} />
                       <span className="text-xs text-card-foreground uppercase font-bold">OTHERS</span>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="flex justify-center p-2 sm:p-4">
-                  {isMounted && currentMonth ? ( 
+                  {isMounted && currentMonth ? (
                     <Calendar
                       mode="single"
                       selected={selectedDate}
                       month={currentMonth}
                       onMonthChange={setCurrentMonth}
                       onSelect={handleDateSelect}
-                      className="rounded-md" 
-                      modifiers={{ 
+                      className="rounded-md"
+                      modifiers={{
                         sunday: sundayMatcher,
-                        ...eventMarkers 
+                        ...eventMarkers
                       }}
-                      modifiersClassNames={{ 
-                        sunday: 'text-destructive', 
+                      modifiersClassNames={{
+                        sunday: 'text-destructive',
                         ...eventModifiersClassNames
                       }}
                       components={{
@@ -653,13 +643,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-    
-      
-
-
-
-
-
-    
-
-    
