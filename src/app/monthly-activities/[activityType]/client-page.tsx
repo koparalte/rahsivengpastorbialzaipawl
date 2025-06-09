@@ -3,14 +3,14 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation'; // To read query parameters
+import { useSearchParams, useRouter } from 'next/navigation'; // Added useRouter
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CalendarCheck, CalendarClock, Package as PackageIcon, Loader2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CalendarCheck, CalendarClock, Package as PackageIcon, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'; // Added ChevronLeft, ChevronRight
 import { Card, CardContent } from "@/components/ui/card";
 import { EventCard } from '@/components/dashboard/event-card';
 import { db, firebaseInitializationError } from '@/lib/firebase';
 import { collection, onSnapshot, QueryDocumentSnapshot, DocumentData, Timestamp } from "firebase/firestore";
-import { format, startOfMonth, endOfMonth, startOfDay, endOfDay, isSameDay, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfDay, endOfDay, isSameDay, parseISO, addMonths, subMonths } from 'date-fns'; // Added addMonths, subMonths
 import { cn } from '@/lib/utils';
 
 interface Event {
@@ -53,14 +53,14 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
   const [pageTitle, setPageTitle] = useState("Monthly Activities");
   const [PageIconComponent, setPageIconComponent] = useState<React.ElementType | null>(null);
 
+  const router = useRouter();
   const searchParams = useSearchParams();
   const monthQuery = searchParams.get('month'); // e.g., "2024-07"
 
   const targetMonthDate = useMemo(() => {
     if (monthQuery) {
       try {
-        // Assuming monthQuery is "YYYY-MM"
-        const parsedDate = parseISO(`${monthQuery}-01T00:00:00.000Z`); // Ensure parsing as UTC start of day
+        const parsedDate = parseISO(`${monthQuery}-01T00:00:00.000Z`);
         if (!isNaN(parsedDate.getTime())) {
           return parsedDate;
         }
@@ -69,9 +69,8 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
         console.warn(`[MonthlyActivityDisplay] Error parsing month query parameter: ${monthQuery}. Defaulting to current month.`, e);
       }
     }
-    return new Date(); // Default to current system date if no valid query param
+    return new Date();
   }, [monthQuery]);
-
 
   const currentMonthStart = useMemo(() => startOfDay(startOfMonth(targetMonthDate)), [targetMonthDate]);
   const currentMonthEnd = useMemo(() => endOfDay(endOfMonth(targetMonthDate)), [targetMonthDate]);
@@ -80,10 +79,23 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
     const monthName = format(targetMonthDate, 'MMMM yyyy');
     const dynamicTitle = `${typeDetail.displayName} for ${monthName}`;
     setPageTitle(dynamicTitle);
-    document.title = `${dynamicTitle} | Rahsiveng Pastor Bial Zaipawl`; // Update document title client-side
+    document.title = `${dynamicTitle} | Rahsiveng Pastor Bial Zaipawl`;
     const IconToUse = clientIconMapping[typeDetail.firestoreType] || clientIconMapping.default;
     setPageIconComponent(() => IconToUse);
   }, [activityTypeParam, typeDetail, targetMonthDate]);
+
+  const handleMonthChange = (newMonthDate: Date) => {
+    const newMonthQuery = format(newMonthDate, 'yyyy-MM');
+    router.push(`/monthly-activities/${activityTypeParam}?month=${newMonthQuery}`);
+  };
+
+  const handlePreviousMonth = () => {
+    handleMonthChange(subMonths(targetMonthDate, 1));
+  };
+
+  const handleNextMonth = () => {
+    handleMonthChange(addMonths(targetMonthDate, 1));
+  };
 
   useEffect(() => {
     if (firebaseInitializationError) {
@@ -108,7 +120,6 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
       const fetchedEvents: Event[] = snapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
         const data = docSnap.data();
         
-        // Log raw date types from Firestore
         console.log(`[Firestore Data Processing] Event ID: ${docSnap.id}, Raw data.date type: ${typeof data.date}, isTimestamp: ${data.date instanceof Timestamp}`, data.date);
         if (data.endDate) {
           console.log(`[Firestore Data Processing] Event ID: ${docSnap.id}, Raw data.endDate type: ${typeof data.endDate}, isTimestamp: ${data.endDate instanceof Timestamp}`, data.endDate);
@@ -150,13 +161,11 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
     return () => unsubscribe();
   }, [firebaseInitializationError, currentMonthStart, currentMonthEnd, typeDetail.displayName, typeDetail.firestoreType]);
 
-
   const filteredEvents = useMemo(() => {
     const targetFirestoreType = typeDetail.firestoreType;
     
     console.log(`[MonthlyActivityDisplay Filter] Filtering for type: "${targetFirestoreType}" in month starting ${format(currentMonthStart, 'yyyy-MM-dd')}. Total events to process: ${events.length}`);
 
-    // This filter shows all events (past, present, future) that fall within the selected calendar month.
     return events
       .filter(event => {
         if (!(event.date instanceof Date && !isNaN(event.date.getTime()))) {
@@ -204,7 +213,7 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
 
   return (
     <div className="container mx-auto px-4 md:px-6">
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
+      <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4"> {/* Reduced mb from 8 to 4 */}
         <div className="flex items-center gap-3">
           {PageIconComponent && <PageIconComponent className="h-8 w-8 text-primary" />}
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{pageTitle}</h1>
@@ -214,6 +223,19 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Link>
+        </Button>
+      </div>
+
+      {/* Month Navigation Widget */}
+      <div className="flex items-center justify-center gap-4 mb-8 p-4 bg-card rounded-lg shadow">
+        <Button variant="outline" size="icon" onClick={handlePreviousMonth} aria-label="Previous month">
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <span className="text-lg font-semibold text-foreground tabular-nums">
+          {format(targetMonthDate, 'MMMM yyyy')}
+        </span>
+        <Button variant="outline" size="icon" onClick={handleNextMonth} aria-label="Next month">
+          <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
 
