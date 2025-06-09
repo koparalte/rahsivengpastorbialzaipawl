@@ -41,7 +41,7 @@ interface DetailedEvent {
 }
 
 interface MonthlyStat {
-  month: string; 
+  month: string;
   rawngbawlna: number;
   hlaZir: number;
   others: number;
@@ -50,15 +50,15 @@ interface MonthlyStat {
 const chartConfig = {
   rawngbawlna: {
     label: "Rawngbawlna",
-    color: "hsl(var(--chart-5))", 
+    color: "hsl(var(--chart-5))",
   },
   hlaZir: {
     label: "Hla Zir",
-    color: "hsl(var(--chart-1))", 
+    color: "hsl(var(--chart-1))",
   },
   others: {
     label: "Others",
-    color: "hsl(var(--chart-3))", 
+    color: "hsl(var(--chart-3))",
   },
 } satisfies ChartConfig;
 
@@ -71,8 +71,8 @@ const sessionOrder: Record<string, number> = {
 
 const isEventPastOrCurrent = (event: DetailedEvent): boolean => {
   const today = startOfDay(new Date());
-  const eventEffectiveEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) 
-    ? startOfDay(event.endDate) 
+  const eventEffectiveEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime())
+    ? startOfDay(event.endDate)
     : startOfDay(event.date);
   return eventEffectiveEndDate <= today;
 };
@@ -119,13 +119,13 @@ export default function EventStatsPage() {
         const data = docSnap.data();
         const eventDate = data.date instanceof Timestamp ? data.date.toDate() : new Date();
         const eventEndDate = data.endDate instanceof Timestamp ? data.endDate.toDate() : undefined;
-        
+
         fetchedChartEvents.push({
           id: docSnap.id,
           date: eventDate,
           type: data.type,
         });
-        
+
         fetchedDetailedEvents.push({
             id: docSnap.id,
             title: data.title || "Untitled Event",
@@ -137,7 +137,7 @@ export default function EventStatsPage() {
         });
       });
 
-      setAllDetailedEvents(fetchedDetailedEvents); 
+      setAllDetailedEvents(fetchedDetailedEvents);
 
       const statsByMonth: Record<string, Omit<MonthlyStat, 'month'>> = {};
       fetchedChartEvents.forEach(event => {
@@ -157,10 +157,10 @@ export default function EventStatsPage() {
             break;
         }
       });
-      
+
       const formattedStats: MonthlyStat[] = Object.entries(statsByMonth)
         .map(([monthKey, counts]) => ({
-          month: format(parseISO(monthKey + "-01"), "MMM yy"), 
+          month: format(parseISO(monthKey + "-01"), "MMM yy"),
           rawngbawlna: counts.rawngbawlna,
           hlaZir: counts.hlaZir,
           others: counts.others,
@@ -258,14 +258,14 @@ export default function EventStatsPage() {
               </Link>
             </Button>
           </div>
-          
+
           <Card className="shadow-xl">
             <CardHeader>
               <div className="flex items-center gap-2 mb-2">
                 <ListChecks className="h-6 w-6 text-primary" />
                 <CardTitle>All Activities Count (Past &amp; Current Only)</CardTitle>
               </div>
-              
+
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t">
                 <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
                   <CalendarCheck className="h-5 w-5 text-destructive" />
@@ -321,8 +321,8 @@ export default function EventStatsPage() {
                               dateDisplay += ` - ${format(event.endDate, "PP")}`;
                             }
                             return (
-                              <li 
-                                key={event.id} 
+                              <li
+                                key={event.id}
                                 className="flex flex-col p-3 border rounded-md bg-card hover:bg-muted/50 transition-colors cursor-pointer"
                                 onClick={() => handleEventCardClick(event)}
                                 role="button"
@@ -348,7 +348,7 @@ export default function EventStatsPage() {
           </Card>
 
           <Card className="shadow-xl">
-            <CardContent className="min-h-[300px] pt-6"> 
+            <CardContent className="min-h-[300px] pt-6">
               {isLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
@@ -365,25 +365,25 @@ export default function EventStatsPage() {
                   No activity data available to display statistics for chart.
                 </div>
               ) : (
-                <div className="overflow-x-auto"> 
-                  <ChartContainer config={chartConfig} className="h-[450px] w-full min-w-[600px]"> 
+                <div className="overflow-x-auto">
+                  <ChartContainer config={chartConfig} className="h-[450px] w-full min-w-[600px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart 
-                        data={monthlyStats} 
-                        layout="vertical" 
+                      <BarChart
+                        data={monthlyStats}
+                        layout="vertical"
                         margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                        barCategoryGap="20%" 
+                        barCategoryGap="20%"
                       >
-                        <CartesianGrid vertical={true} horizontal={false} strokeDasharray="3 3" /> 
+                        <CartesianGrid vertical={true} horizontal={true} strokeDasharray="3 3" />
                         <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false} />
-                        <YAxis 
-                          dataKey="month" 
-                          type="category" 
-                          tickLine={false} 
-                          axisLine={false} 
+                        <YAxis
+                          dataKey="month"
+                          type="category"
+                          tickLine={false}
+                          axisLine={false}
                           tickMargin={8}
-                          width={80} 
-                          interval={0} 
+                          width={80}
+                          interval={0}
                         />
                         <Tooltip content={<ChartTooltipContent />} cursor={{ fill: 'hsl(var(--muted))' }} />
                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
@@ -432,7 +432,7 @@ export default function EventStatsPage() {
                   <span>{selectedEventForDialog.session}</span>
                 </div>
               )}
-              
+
               <div className="col-span-2 pt-2">
                 <strong className="text-muted-foreground">Description:</strong>
                 <p className="mt-1 text-foreground whitespace-pre-wrap">{selectedEventForDialog.description}</p>
