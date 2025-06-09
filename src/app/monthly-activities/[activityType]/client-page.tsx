@@ -3,9 +3,6 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-// AppHeader and AppFooter are in the layout, no need to import them here directly
-// import { AppHeader } from '@/components/layout/header'; 
-// import { AppFooter } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, CalendarCheck, CalendarClock, Package as PackageIcon, Loader2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,16 +23,6 @@ interface Event {
   session?: 'Zing' | 'Chawhnu' | 'Zan' | 'Chhun leh Zan';
 }
 
-// This specific mapping is used for client-side filtering based on firestoreType
-// It should align with the server-side typeMapping in page.tsx for consistency if used directly.
-// However, for filtering, we will rely on the firestoreType passed via typeDetail prop.
-const clientTypeMapping: { [key: string]: { firestoreType: string } } = {
-  rawngbawlna: { firestoreType: 'event1' },
-  'hla-zir': { firestoreType: 'event2' },
-  others: { firestoreType: 'event3' },
-};
-
-
 const sessionOrder: Record<NonNullable<Event['session']>, number> = {
   'Chhun leh Zan': 0,
   'Zing': 1,
@@ -43,12 +30,19 @@ const sessionOrder: Record<NonNullable<Event['session']>, number> = {
   'Zan': 3,
 };
 
+// Client-side mapping to determine the icon
+const clientIconMapping: { [key: string]: React.ElementType } = {
+  event1: CalendarCheck,
+  event2: CalendarClock,
+  event3: PackageIcon,
+  default: PackageIcon, // Fallback icon
+};
+
 interface MonthlyActivityDisplayProps {
   activityTypeParam: string;
-  typeDetail: {
-    firestoreType: string; // This will be the type used for filtering (e.g., 'event1')
+  typeDetail: { // This prop now contains only serializable data
+    firestoreType: string;
     displayName: string;
-    icon: React.ElementType;
   };
 }
 
@@ -65,7 +59,9 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
   useEffect(() => {
     const monthName = format(currentMonthStart, 'MMMM yyyy');
     setPageTitle(`${typeDetail.displayName} for ${monthName}`);
-    setPageIconComponent(() => typeDetail.icon);
+    // Determine the icon on the client side
+    const IconToUse = clientIconMapping[typeDetail.firestoreType] || clientIconMapping.default;
+    setPageIconComponent(() => IconToUse);
   }, [activityTypeParam, typeDetail, currentMonthStart]);
 
   useEffect(() => {
@@ -104,56 +100,42 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
     });
 
     return () => unsubscribe();
-  }, [firebaseInitializationError]); // Added firebaseInitializationError to dependency array
+  }, [firebaseInitializationError]);
 
   const filteredEvents = useMemo(() => {
-    // Use typeDetail.firestoreType directly for filtering. This comes from the server component.
     const targetFirestoreType = typeDetail.firestoreType;
 
-    if (!targetFirestoreType) {
-        // If firestoreType is empty (e.g., for an unmapped 'others' from a direct URL visit),
-        // it implies we shouldn't filter by a specific type, or perhaps show nothing/all 'other' types.
-        // For now, if no specific firestoreType is provided by the server component, show no events.
-        // This behavior can be adjusted based on desired outcome for unmapped types.
-        // console.warn(`No specific firestoreType provided for ${activityTypeParam}. Displaying no events.`);
-        // return [];
-    }
-    
     return events
       .filter(event => {
         const eventStartDate = startOfDay(event.date);
-        // Only filter by type if targetFirestoreType is non-empty.
-        // If targetFirestoreType is empty, it means we're showing 'others' which might not have a specific type field
-        // or could be any type not event1 or event2.
-        // The current logic relies on server passing the correct typeDetail.firestoreType.
-        const eventMatchesType = targetFirestoreType ? event.type === targetFirestoreType : true; // Adjust if 'others' should only include events without a type or with type 'event3'
-        
+        const eventMatchesType = targetFirestoreType ? event.type === targetFirestoreType : (event.type !== 'event1' && event.type !== 'event2'); // Adjust for "others" if it means non-event1/event2
+
         let eventIsInCurrentMonth = false;
         const validEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) ? endOfDay(event.endDate) : undefined;
 
         if (validEndDate && !isSameDay(eventStartDate, validEndDate)) {
           const interval = { start: eventStartDate, end: validEndDate };
-          eventIsInCurrentMonth = 
+          eventIsInCurrentMonth =
             isWithinInterval(currentMonthStart, interval) ||
             isWithinInterval(currentMonthEnd, interval) ||
             (eventStartDate < currentMonthStart && validEndDate > currentMonthEnd);
         } else {
           eventIsInCurrentMonth = isWithinInterval(eventStartDate, { start: currentMonthStart, end: currentMonthEnd });
         }
-        
+
         return eventMatchesType && eventIsInCurrentMonth;
       })
       .sort((a, b) => {
         const dateDiff = a.date.getTime() - b.date.getTime();
         if (dateDiff !== 0) return dateDiff;
-        
+
         const aSessionValue = a.session ? sessionOrder[a.session] : Infinity;
         const bSessionValue = b.session ? sessionOrder[b.session] : Infinity;
         if (aSessionValue !== bSessionValue) return aSessionValue - bSessionValue;
 
         return (a.title || "").localeCompare(b.title || "");
       });
-  }, [events, activityTypeParam, currentMonthStart, currentMonthEnd, typeDetail.firestoreType]);
+  }, [events, typeDetail.firestoreType, currentMonthStart, currentMonthEnd]);
 
 
   return (

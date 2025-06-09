@@ -1,29 +1,30 @@
 
 import type { Metadata } from 'next';
 import { format, startOfMonth } from 'date-fns';
-import { CalendarCheck, CalendarClock, Package as PackageIcon } from 'lucide-react';
+// Remove icon imports from server component
 import MonthlyActivityDisplay from './client-page'; // Import the client component
 
 // Shared typeMapping, accessible by generateMetadata and the Page component
-const typeMapping: { [key: string]: { firestoreType: string; displayName: string; icon: React.ElementType } } = {
-  rawngbawlna: { firestoreType: 'event1', displayName: 'Rawngbawlna', icon: CalendarCheck },
-  'hla-zir': { firestoreType: 'event2', displayName: 'Hla Zir', icon: CalendarClock },
-  others: { firestoreType: 'event3', displayName: 'Other Activities', icon: PackageIcon },
+// Remove icon from this server-side mapping
+const typeMapping: { [key: string]: { firestoreType: string; displayName: string; } } = {
+  rawngbawlna: { firestoreType: 'event1', displayName: 'Rawngbawlna' },
+  'hla-zir': { firestoreType: 'event2', displayName: 'Hla Zir' },
+  others: { firestoreType: 'event3', displayName: 'Other Activities' },
 };
 
 // Default info for unknown activity types
-const defaultTypeInfo = { 
-  firestoreType: '', // Or some other default/indicator
-  displayName: 'Activities', 
-  icon: PackageIcon 
+// Remove icon from this server-side mapping
+const defaultTypeInfo = {
+  firestoreType: '',
+  displayName: 'Activities',
 };
 
 export async function generateMetadata({ params }: { params: { activityType: string } }): Promise<Metadata> {
   const activityTypeParam = params.activityType;
   // Use a default displayName if activityTypeParam is not in typeMapping
-  const typeDetail = typeMapping[activityTypeParam] || { 
-    ...defaultTypeInfo, // Spread defaultTypeInfo first
-    displayName: activityTypeParam.charAt(0).toUpperCase() + activityTypeParam.slice(1) // Then override displayName
+  const typeDetail = typeMapping[activityTypeParam] || {
+    ...defaultTypeInfo, 
+    displayName: activityTypeParam.charAt(0).toUpperCase() + activityTypeParam.slice(1)
   };
   const activityName = typeDetail.displayName;
   const currentMonthName = format(startOfMonth(new Date()), 'MMMM yyyy');
@@ -36,17 +37,18 @@ export async function generateMetadata({ params }: { params: { activityType: str
 
 export default function MonthlyActivityTypePageServer({ params }: { params: { activityType: string } }) {
   const activityTypeParam = params.activityType;
-  // Provide a fallback for displayName and icon if activityTypeParam is not in typeMapping
-  const typeDetail = typeMapping[activityTypeParam] || 
-                     { 
-                       ...defaultTypeInfo, 
-                       displayName: activityTypeParam.charAt(0).toUpperCase() + activityTypeParam.slice(1) 
+  // Provide a fallback for displayName if activityTypeParam is not in typeMapping
+  // The icon will be handled by the client component
+  const typeDetail = typeMapping[activityTypeParam] ||
+                     {
+                       ...defaultTypeInfo,
+                       displayName: activityTypeParam.charAt(0).toUpperCase() + activityTypeParam.slice(1)
                      };
 
   return (
-    <MonthlyActivityDisplay 
-      activityTypeParam={activityTypeParam} 
-      typeDetail={typeDetail}
+    <MonthlyActivityDisplay
+      activityTypeParam={activityTypeParam}
+      typeDetail={typeDetail} // Pass serializable data only
     />
   );
 }
