@@ -211,7 +211,7 @@ export default function EventStatsPage() {
 
     for (const monthKey in groups) {
       groups[monthKey].sort((a, b) => {
-        const dateDiff = a.date.getTime() - b.date.getTime();
+        const dateDiff = b.date.getTime() - a.date.getTime(); // Sort by newest date first
         if (dateDiff !== 0) return dateDiff;
 
         if (a.type === 'event1' && b.type === 'event1' && a.session && b.session) {
@@ -451,3 +451,4 @@ export default function EventStatsPage() {
     </div>
   );
 }
+
