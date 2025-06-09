@@ -1,6 +1,7 @@
 
 import type { LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from '@/lib/utils';
 
 interface SummaryCardProps {
   title: string;
@@ -11,14 +12,20 @@ interface SummaryCardProps {
 
 export function SummaryCard({ title, value, icon: Icon, description }: SummaryCardProps) {
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1"> {/* Reduced padding */}
-        <CardTitle className="text-xs font-medium text-muted-foreground">{title}</CardTitle> {/* Smaller title */}
-        <Icon className="h-4 w-4 text-accent" /> {/* Smaller icon */}
+    <Card className={cn(
+      "shadow-lg hover:shadow-xl transition-shadow duration-300",
+      "h-full flex flex-col" // Added h-full and flex utilities
+    )}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1">
+        <CardTitle className="text-xs font-medium text-muted-foreground">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-accent" />
       </CardHeader>
-      <CardContent className="p-3 pt-0"> {/* Reduced padding */}
-        <div className="text-xl font-bold text-card-foreground">{value}</div> {/* Smaller value */}
-        {description && <p className="text-xs text-muted-foreground pt-1">{description}</p>}
+      <CardContent className={cn(
+        "p-3 pt-0",
+        "flex-grow flex flex-col justify-center" // Allow content to grow and center vertically
+      )}>
+        <div className="text-xl font-bold text-card-foreground text-center">{value}</div>
+        {description && <p className="text-xs text-muted-foreground pt-1 text-center">{description}</p>}
       </CardContent>
     </Card>
   );

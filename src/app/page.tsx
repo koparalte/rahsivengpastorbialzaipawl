@@ -413,28 +413,28 @@ export default function DashboardPage() {
           <DashboardBanner bannerImageUrl={firebaseBannerImageUrl} />
 
           <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
-            <Link href="/monthly-activities/rawngbawlna" passHref>
+            <Link href="/monthly-activities/rawngbawlna" passHref className="h-full">
               <SummaryCard
                 title={"Rawngbawlna " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
                 value={eventType1Count.toString()}
                 icon={CalendarCheck}
               />
             </Link>
-            <Link href="/monthly-activities/hla-zir" passHref>
+            <Link href="/monthly-activities/hla-zir" passHref className="h-full">
               <SummaryCard
                 title={"Hla zir " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
                 value={eventType2Count.toString()}
                 icon={CalendarClock}
               />
             </Link>
-            <Link href="/monthly-activities/others" passHref>
+            <Link href="/monthly-activities/others" passHref className="h-full">
               <SummaryCard
                 title={"Others " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
                 value={eventType3Count.toString()}
                 icon={Package}
               />
             </Link>
-            <Link href="/stats" passHref>
+            <Link href="/stats" passHref className="h-full">
               <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center text-center p-3 cursor-pointer h-full bg-card hover:bg-muted/50">
                 <CardHeader className="p-1 pb-1 flex flex-col items-center">
                   <BarChart3 className="h-6 w-6 text-accent mb-1" />
