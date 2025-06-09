@@ -4,7 +4,7 @@
 import { AppHeader } from '@/components/layout/header';
 import { AppFooter } from '@/components/layout/footer';
 import { Button } from "@/components/ui/button";
-import { Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, CalendarCheck, CalendarClock, ArrowLeftCircle, ArrowRightCircle, Package, BarChart3 } from 'lucide-react'; // Added BarChart3
+import { Users, Loader2, AlertTriangle, ChevronLeft, ChevronRight, CalendarCheck, CalendarClock, ArrowLeftCircle, ArrowRightCircle, Package, BarChart3 } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -17,7 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { EventCard } from '@/components/dashboard/event-card';
-import { isSameDay, format, isSameMonth, startOfDay, endOfDay, isWithinInterval, addDays, subDays } from 'date-fns';
+import { isSameDay, format, isSameMonth, startOfDay, endOfDay, isWithinInterval, addDays, subDays, startOfMonth } from 'date-fns';
 import type { DateRange, Modifiers } from 'react-day-picker';
 import { db, firebaseInitializationError } from '@/lib/firebase';
 import { collection, onSnapshot, QueryDocumentSnapshot, DocumentData, Timestamp } from "firebase/firestore";
@@ -45,7 +45,7 @@ const sessionOrder: Record<NonNullable<Event['session']>, number> = {
 
 export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
-  const [currentMonth, setCurrentMonth] = React.useState<Date | undefined>(undefined);
+  const [currentMonth, setCurrentMonth] = React.useState<Date | undefined>(new Date()); // Initialize with current date
   const [isMounted, setIsMounted] = React.useState(false);
 
   const [events, setEvents] = useState<Event[]>([]);
@@ -64,7 +64,10 @@ export default function DashboardPage() {
   const [canGoToNextEventDay, setCanGoToNextEventDay] = useState(false);
 
   useEffect(() => {
-    setCurrentMonth(new Date());
+    // Set currentMonth initially for the calendar if not already set.
+    if (!currentMonth) {
+      setCurrentMonth(new Date());
+    }
     setIsMounted(true);
   }, []);
 
@@ -89,12 +92,14 @@ export default function DashboardPage() {
         if (relevantEvents.length > 0) {
           const nearestEvent = relevantEvents[0];
           setSelectedDate(nearestEvent.date);
-          setCurrentMonth(nearestEvent.date);
+          setCurrentMonth(nearestEvent.date); // Update calendar month to event's month
         } else {
           setSelectedDate(new Date());
+          setCurrentMonth(new Date()); // Default to current month
         }
       } else {
         setSelectedDate(new Date());
+        setCurrentMonth(new Date()); // Default to current month
       }
     }
   }, [isMounted, isLoadingEvents, events, selectedDate]);
@@ -211,18 +216,20 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (events.length > 0 && currentMonth) {
-      const monthToDisplay = currentMonth;
+      const monthToDisplay = currentMonth; // Use the calendar's currentMonth state
       const eventsInSelectedMonth = events.filter(event => {
         const eventStartDate = startOfDay(event.date);
         const validEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) ? endOfDay(event.endDate) : undefined;
+        const monthStart = startOfMonth(monthToDisplay);
+        const monthEnd = endOfDay(startOfMonth(addDays(monthStart, 35))); // Ensure we cover the full month display
 
         if (validEndDate && !isSameDay(eventStartDate, validEndDate)) {
             const intervalStart = eventStartDate < validEndDate ? eventStartDate : validEndDate;
             const intervalEnd = eventStartDate < validEndDate ? validEndDate : eventStartDate;
-            return isSameMonth(intervalStart, monthToDisplay) ||
-                   isSameMonth(intervalEnd, monthToDisplay) ||
-                   (intervalStart < startOfDay(monthToDisplay) && intervalEnd > endOfDay(monthToDisplay));
+            // Check if the event's interval overlaps with the selected month's interval
+            return intervalStart <= monthEnd && intervalEnd >= monthStart;
         } else {
+            // For single day events, check if it's in the selected month
             return isSameMonth(eventStartDate, monthToDisplay);
         }
       });
@@ -403,6 +410,8 @@ export default function DashboardPage() {
   };
 
   const currentMonthNameForStats = isMounted && currentMonth ? format(currentMonth, 'MMMM yyyy') : 'Loading...';
+  const currentMonthQueryParam = isMounted && currentMonth ? format(currentMonth, 'yyyy-MM') : '';
+
 
   return (
     <div className="flex min-h-screen w-full flex-col">
@@ -413,21 +422,21 @@ export default function DashboardPage() {
           <DashboardBanner bannerImageUrl={firebaseBannerImageUrl} />
 
           <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
-            <Link href="/monthly-activities/rawngbawlna" passHref className="h-full">
+            <Link href={`/monthly-activities/rawngbawlna?month=${currentMonthQueryParam}`} passHref className="h-full">
               <SummaryCard
                 title={"Rawngbawlna " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
                 value={eventType1Count.toString()}
                 icon={CalendarCheck}
               />
             </Link>
-            <Link href="/monthly-activities/hla-zir" passHref className="h-full">
+            <Link href={`/monthly-activities/hla-zir?month=${currentMonthQueryParam}`} passHref className="h-full">
               <SummaryCard
                 title={"Hla zir " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
                 value={eventType2Count.toString()}
                 icon={CalendarClock}
               />
             </Link>
-            <Link href="/monthly-activities/others" passHref className="h-full">
+            <Link href={`/monthly-activities/others?month=${currentMonthQueryParam}`} passHref className="h-full">
               <SummaryCard
                 title={"Others " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
                 value={eventType3Count.toString()}

@@ -3,13 +3,14 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation'; // To read query parameters
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, CalendarCheck, CalendarClock, Package as PackageIcon, Loader2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { EventCard } from '@/components/dashboard/event-card';
 import { db, firebaseInitializationError } from '@/lib/firebase';
 import { collection, onSnapshot, QueryDocumentSnapshot, DocumentData, Timestamp } from "firebase/firestore";
-import { format, startOfMonth, endOfMonth, startOfDay, endOfDay, isSameDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfDay, endOfDay, isSameDay, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface Event {
@@ -52,15 +53,37 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
   const [pageTitle, setPageTitle] = useState("Monthly Activities");
   const [PageIconComponent, setPageIconComponent] = useState<React.ElementType | null>(null);
 
-  const currentMonthStart = useMemo(() => startOfDay(startOfMonth(new Date())), []);
-  const currentMonthEnd = useMemo(() => endOfDay(endOfMonth(new Date())), []);
+  const searchParams = useSearchParams();
+  const monthQuery = searchParams.get('month'); // e.g., "2024-07"
+
+  const targetMonthDate = useMemo(() => {
+    if (monthQuery) {
+      try {
+        // Assuming monthQuery is "YYYY-MM"
+        const parsedDate = parseISO(`${monthQuery}-01T00:00:00.000Z`); // Ensure parsing as UTC start of day
+        if (!isNaN(parsedDate.getTime())) {
+          return parsedDate;
+        }
+        console.warn(`[MonthlyActivityDisplay] Invalid month query parameter: ${monthQuery}. Defaulting to current month.`);
+      } catch (e) {
+        console.warn(`[MonthlyActivityDisplay] Error parsing month query parameter: ${monthQuery}. Defaulting to current month.`, e);
+      }
+    }
+    return new Date(); // Default to current system date if no valid query param
+  }, [monthQuery]);
+
+
+  const currentMonthStart = useMemo(() => startOfDay(startOfMonth(targetMonthDate)), [targetMonthDate]);
+  const currentMonthEnd = useMemo(() => endOfDay(endOfMonth(targetMonthDate)), [targetMonthDate]);
 
   useEffect(() => {
-    const monthName = format(currentMonthStart, 'MMMM yyyy');
-    setPageTitle(`${typeDetail.displayName} for ${monthName}`);
+    const monthName = format(targetMonthDate, 'MMMM yyyy');
+    const dynamicTitle = `${typeDetail.displayName} for ${monthName}`;
+    setPageTitle(dynamicTitle);
+    document.title = `${dynamicTitle} | Rahsiveng Pastor Bial Zaipawl`; // Update document title client-side
     const IconToUse = clientIconMapping[typeDetail.firestoreType] || clientIconMapping.default;
     setPageIconComponent(() => IconToUse);
-  }, [activityTypeParam, typeDetail, currentMonthStart]);
+  }, [activityTypeParam, typeDetail, targetMonthDate]);
 
   useEffect(() => {
     if (firebaseInitializationError) {
@@ -74,7 +97,7 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
       return;
     }
 
-    console.log(`[MonthlyActivityDisplay] Page for type: ${typeDetail.displayName}. Current system month range for filtering:`,
+    console.log(`[MonthlyActivityDisplay] Page for type: ${typeDetail.displayName}. Selected month for filtering:`,
       format(currentMonthStart, 'yyyy-MM-dd HH:mm:ss'),
       'to',
       format(currentMonthEnd, 'yyyy-MM-dd HH:mm:ss')
@@ -84,13 +107,12 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
     const unsubscribe = onSnapshot(eventsCollectionRef, (snapshot) => {
       const fetchedEvents: Event[] = snapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
         const data = docSnap.data();
-
+        
         // Log raw date types from Firestore
         console.log(`[Firestore Data Processing] Event ID: ${docSnap.id}, Raw data.date type: ${typeof data.date}, isTimestamp: ${data.date instanceof Timestamp}`, data.date);
         if (data.endDate) {
           console.log(`[Firestore Data Processing] Event ID: ${docSnap.id}, Raw data.endDate type: ${typeof data.endDate}, isTimestamp: ${data.endDate instanceof Timestamp}`, data.endDate);
         }
-
 
         const eventDate = data.date instanceof Timestamp ? data.date.toDate() : new Date();
         if (!(data.date instanceof Timestamp)) {
@@ -128,51 +150,44 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
     return () => unsubscribe();
   }, [firebaseInitializationError, currentMonthStart, currentMonthEnd, typeDetail.displayName, typeDetail.firestoreType]);
 
+
   const filteredEvents = useMemo(() => {
     const targetFirestoreType = typeDetail.firestoreType;
     
     console.log(`[MonthlyActivityDisplay Filter] Filtering for type: "${targetFirestoreType}" in month starting ${format(currentMonthStart, 'yyyy-MM-dd')}. Total events to process: ${events.length}`);
 
+    // This filter shows all events (past, present, future) that fall within the selected calendar month.
     return events
       .filter(event => {
-        // Ensure event.date is a valid Date object before proceeding
         if (!(event.date instanceof Date && !isNaN(event.date.getTime()))) {
           console.warn(`[Event Filter - ${event.id}] Invalid event.date, skipping:`, event.date);
           return false;
         }
 
         const eventStartDate = startOfDay(event.date);
-        // Effective end date: use event.endDate if valid, otherwise use the end of the event.date (for single-day events)
         const effectiveEventEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) 
                                       ? endOfDay(event.endDate) 
-                                      : endOfDay(event.date); // For single-day events, consider it to span the whole day for range checks
+                                      : endOfDay(event.date);
 
-        const eventMatchesType = targetFirestoreType ? event.type === targetFirestoreType : (event.type !== 'event1' && event.type !== 'event2'); // Default to 'others' if no target type
+        const eventMatchesType = targetFirestoreType ? event.type === targetFirestoreType : (event.type !== 'event1' && event.type !== 'event2');
         
-        // Standard range overlap check:
-        // An event overlaps with the current month if:
-        // - the event starts on or before the last day of the current month, AND
-        // - the event ends on or after the first day of the current month.
-        const eventIsInCurrentMonth = eventStartDate <= currentMonthEnd && effectiveEventEndDate >= currentMonthStart;
+        const eventIsInSelectedMonth = eventStartDate <= currentMonthEnd && effectiveEventEndDate >= currentMonthStart;
         
-        // Log details for each event being filtered if it's of the target type or if detailed logging is globally enabled
-        // This log will help understand why an event is included or excluded.
-        if (event.type === targetFirestoreType || !targetFirestoreType) { // Log if type matches OR if we are showing "others" (no specific targetType)
-            console.log(`[Event Filter Details - ID: ${event.id}]
-              Event Title: "${event.title}", Type: ${event.type || 'N/A'}
-              Raw Dates: Start=${event.date ? event.date.toISOString() : 'Invalid/Missing'}, End=${event.endDate ? event.endDate.toISOString() : 'N/A'}
-              Processed Event Dates (for filter): Start=${format(eventStartDate, 'yyyy-MM-dd HH:mm:ss')}, End=${format(effectiveEventEndDate, 'yyyy-MM-dd HH:mm:ss')}
-              Current Month Range (for filter): Start=${format(currentMonthStart, 'yyyy-MM-dd HH:mm:ss')}, End=${format(currentMonthEnd, 'yyyy-MM-dd HH:mm:ss')}
-              Filter Criteria:
-                - Matches Target Type ('${targetFirestoreType || 'any other'}'): ${eventMatchesType}
-                - Is In Current Month: ${eventIsInCurrentMonth}
-                  (Condition: ${format(eventStartDate, 'MM/dd')} <= ${format(currentMonthEnd, 'MM/dd')} AND ${format(effectiveEventEndDate, 'MM/dd')} >= ${format(currentMonthStart, 'MM/dd')})
-              Final Decision: ${eventMatchesType && eventIsInCurrentMonth ? 'INCLUDE' : 'EXCLUDE'}`);
+        if (event.type === targetFirestoreType || !targetFirestoreType) {
+          console.log(`[Event Filter Details - ID: ${event.id}]
+            Event Title: "${event.title}", Type: ${event.type || 'N/A'}
+            Raw Dates: Start=${event.date ? event.date.toISOString() : 'Invalid/Missing'}, End=${event.endDate ? event.endDate.toISOString() : 'N/A'}
+            Processed Event Dates (for filter): Start=${format(eventStartDate, 'yyyy-MM-dd HH:mm:ss')}, End=${format(effectiveEventEndDate, 'yyyy-MM-dd HH:mm:ss')}
+            Selected Month Range (for filter): Start=${format(currentMonthStart, 'yyyy-MM-dd HH:mm:ss')}, End=${format(currentMonthEnd, 'yyyy-MM-dd HH:mm:ss')}
+            Filter Criteria:
+              - Matches Target Type ('${targetFirestoreType || 'any other'}'): ${eventMatchesType}
+              - Is In Selected Month: ${eventIsInSelectedMonth}
+                (Condition: ${format(eventStartDate, 'MM/dd')} <= ${format(currentMonthEnd, 'MM/dd')} AND ${format(effectiveEventEndDate, 'MM/dd')} >= ${format(currentMonthStart, 'MM/dd')})
+            Final Decision: ${eventMatchesType && eventIsInSelectedMonth ? 'INCLUDE' : 'EXCLUDE'}`);
         }
-
-        return eventMatchesType && eventIsInCurrentMonth;
+        return eventMatchesType && eventIsInSelectedMonth;
       })
-      .sort((a, b) => { // Sort by start date, then by session for type 'event1', then by title
+      .sort((a, b) => {
         const dateDiff = a.date.getTime() - b.date.getTime();
         if (dateDiff !== 0) return dateDiff;
 
@@ -222,7 +237,7 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
       {!isLoading && !error && filteredEvents.length === 0 && (
         <Card className="shadow-md">
           <CardContent className="p-6 text-center text-muted-foreground">
-            No {typeDetail.displayName.toLowerCase()} activities found for the current month ({format(currentMonthStart, 'MMMM yyyy')}).
+            No {typeDetail.displayName.toLowerCase()} activities found for {format(targetMonthDate, 'MMMM yyyy')}.
           </CardContent>
         </Card>
       )}
@@ -241,7 +256,6 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
                 }
               }
               if (isMultiDayEvent && event.endDate instanceof Date && !isNaN(event.endDate.getTime())) {
-                // Ensure from date is always before to date for display
                 const from = event.date < event.endDate ? event.date : event.endDate;
                 const to = event.date < event.endDate ? event.endDate : event.date;
                 displayDateString = format(from, 'PPP') + " - " + format(to, 'PPP');
