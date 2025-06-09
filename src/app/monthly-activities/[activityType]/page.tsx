@@ -1,235 +1,52 @@
 
-"use client";
-
 import type { Metadata } from 'next';
-import React, { useEffect, useState, useMemo } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import { AppHeader } from '@/components/layout/header';
-import { AppFooter } from '@/components/layout/footer';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, CalendarCheck, CalendarClock, Package as PackageIcon, Loader2, AlertTriangle } from 'lucide-react';
-import { Card, CardContent } from "@/components/ui/card";
-import { EventCard } from '@/components/dashboard/event-card';
-import { db, firebaseInitializationError } from '@/lib/firebase';
-import { collection, onSnapshot, QueryDocumentSnapshot, DocumentData, Timestamp } from "firebase/firestore";
-import { format, startOfMonth, endOfMonth, isWithinInterval, startOfDay, isSameDay } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { format, startOfMonth } from 'date-fns';
+import { CalendarCheck, CalendarClock, Package as PackageIcon } from 'lucide-react';
+import MonthlyActivityDisplay from './client-page'; // Import the client component
 
-interface Event {
-  id: string;
-  date: Date;
-  endDate?: Date;
-  title: string;
-  description: string;
-  type?: 'event1' | 'event2' | 'event3' | string;
-  imageUrl?: string;
-  session?: 'Zing' | 'Chawhnu' | 'Zan' | 'Chhun leh Zan';
-}
-
+// Shared typeMapping, accessible by generateMetadata and the Page component
 const typeMapping: { [key: string]: { firestoreType: string; displayName: string; icon: React.ElementType } } = {
   rawngbawlna: { firestoreType: 'event1', displayName: 'Rawngbawlna', icon: CalendarCheck },
   'hla-zir': { firestoreType: 'event2', displayName: 'Hla Zir', icon: CalendarClock },
   others: { firestoreType: 'event3', displayName: 'Other Activities', icon: PackageIcon },
 };
 
-const sessionOrder: Record<NonNullable<Event['session']>, number> = {
-  'Chhun leh Zan': 0,
-  'Zing': 1,
-  'Chawhnu': 2,
-  'Zan': 3,
+// Default info for unknown activity types
+const defaultTypeInfo = { 
+  firestoreType: '', // Or some other default/indicator
+  displayName: 'Activities', 
+  icon: PackageIcon 
 };
-
-export default function MonthlyActivityTypePage() {
-  const params = useParams();
-  const activityTypeParam = typeof params.activityType === 'string' ? params.activityType : '';
-
-  const [events, setEvents] = useState<Event[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pageTitle, setPageTitle] = useState("Monthly Activities");
-  const [pageIcon, setPageIcon] = useState<React.ElementType | null>(null);
-
-  const currentMonthStart = useMemo(() => startOfMonth(new Date()), []);
-  const currentMonthEnd = useMemo(() => endOfMonth(new Date()), []);
-
-  useEffect(() => {
-    if (activityTypeParam && typeMapping[activityTypeParam]) {
-      const { displayName, icon } = typeMapping[activityTypeParam];
-      const monthName = format(currentMonthStart, 'MMMM yyyy');
-      setPageTitle(`${displayName} for ${monthName}`);
-      setPageIcon(() => icon); // Use functional update for icon
-    } else if (activityTypeParam) {
-      setPageTitle(`Activities for ${activityTypeParam}`);
-      setPageIcon(null);
-    }
-  }, [activityTypeParam, currentMonthStart]);
-
-
-  useEffect(() => {
-    if (firebaseInitializationError) {
-      setError(`Firebase Initialization Error: ${firebaseInitializationError}`);
-      setIsLoading(false);
-      return;
-    }
-    if (!db) {
-      setError("Firestore database is not available.");
-      setIsLoading(false);
-      return;
-    }
-
-    const eventsCollectionRef = collection(db, "calendarEvents");
-    const unsubscribe = onSnapshot(eventsCollectionRef, (snapshot) => {
-      const fetchedEvents: Event[] = snapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
-        const data = docSnap.data();
-        return {
-          id: docSnap.id,
-          date: data.date instanceof Timestamp ? data.date.toDate() : new Date(),
-          endDate: data.endDate instanceof Timestamp ? data.endDate.toDate() : undefined,
-          title: data.title || "Untitled Event",
-          description: data.description || "No description.",
-          type: data.type,
-          imageUrl: data.imageUrl,
-          session: data.session,
-        };
-      });
-      setEvents(fetchedEvents);
-      setIsLoading(false);
-    }, (err) => {
-      console.error("Error fetching monthly activities:", err);
-      setError(`Failed to load activities: ${err.message}`);
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const filteredEvents = useMemo(() => {
-    if (!activityTypeParam || !typeMapping[activityTypeParam]) return [];
-    const targetFirestoreType = typeMapping[activityTypeParam].firestoreType;
-
-    return events
-      .filter(event => {
-        const eventStartDate = startOfDay(event.date);
-        const eventMatchesType = event.type === targetFirestoreType;
-        
-        let eventIsInCurrentMonth = false;
-        if (event.endDate && !isSameDay(eventStartDate, startOfDay(event.endDate))) {
-          // Multi-day event
-          const interval = { start: eventStartDate, end: startOfDay(event.endDate) };
-          eventIsInCurrentMonth = 
-            isWithinInterval(currentMonthStart, interval) ||
-            isWithinInterval(currentMonthEnd, interval) ||
-            (eventStartDate < currentMonthStart && startOfDay(event.endDate) > currentMonthEnd);
-        } else {
-          // Single-day event
-          eventIsInCurrentMonth = isWithinInterval(eventStartDate, { start: currentMonthStart, end: currentMonthEnd });
-        }
-        
-        return eventMatchesType && eventIsInCurrentMonth;
-      })
-      .sort((a, b) => {
-        const dateDiff = a.date.getTime() - b.date.getTime();
-        if (dateDiff !== 0) return dateDiff;
-        
-        const aSessionValue = a.session ? sessionOrder[a.session] : Infinity;
-        const bSessionValue = b.session ? sessionOrder[b.session] : Infinity;
-        if (aSessionValue !== bSessionValue) return aSessionValue - bSessionValue;
-
-        return (a.title || "").localeCompare(b.title || "");
-      });
-  }, [events, activityTypeParam, currentMonthStart, currentMonthEnd]);
-
-  const PageIconComponent = pageIcon;
-
-  return (
-    <div className="container mx-auto px-4 md:px-6">
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
-        <div className="flex items-center gap-3">
-          {PageIconComponent && <PageIconComponent className="h-8 w-8 text-primary" />}
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{pageTitle}</h1>
-        </div>
-        <Button variant="outline" asChild className="w-full sm:w-auto">
-          <Link href="/">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Link>
-        </Button>
-      </div>
-
-      {isLoading && (
-        <div className="flex items-center justify-center text-muted-foreground py-10">
-          <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-          Loading activities...
-        </div>
-      )}
-
-      {error && (
-        <div className="text-destructive p-4 bg-destructive/10 border border-destructive rounded-md">
-          <div className="flex items-center">
-            <AlertTriangle className="mr-2 h-5 w-5" />
-            <span className="font-semibold">Error Loading Activities</span>
-          </div>
-          <p className="text-sm mt-1">{error}</p>
-        </div>
-      )}
-
-      {!isLoading && !error && filteredEvents.length === 0 && (
-        <Card className="shadow-md">
-          <CardContent className="p-6 text-center text-muted-foreground">
-            No activities found for this type in the current month.
-          </CardContent>
-        </Card>
-      )}
-
-      {!isLoading && !error && filteredEvents.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredEvents.map(event => {
-            let displayDateString: string | undefined = undefined;
-            if (event.date instanceof Date && !isNaN(event.date.getTime())) {
-              const sDay = startOfDay(event.date);
-              let isMultiDayEvent = false;
-              if (event.endDate instanceof Date && !isNaN(event.endDate.getTime())) {
-                const eDay = startOfDay(event.endDate);
-                if (!isSameDay(sDay, eDay)) {
-                  isMultiDayEvent = true;
-                }
-              }
-              if (isMultiDayEvent && event.endDate instanceof Date && !isNaN(event.endDate.getTime())) {
-                const from = event.date < event.endDate ? event.date : event.endDate;
-                const to = event.date < event.endDate ? event.endDate : event.date;
-                displayDateString = format(from, 'PPP') + " - " + format(to, 'PPP');
-              } else {
-                displayDateString = format(event.date, 'PPP');
-              }
-            }
-
-            return (
-              <EventCard
-                key={event.id}
-                title={event.title}
-                description={event.description}
-                imageUrl={event.imageUrl}
-                displayDate={displayDateString}
-                session={event.session}
-                eventType={event.type}
-              />
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export async function generateMetadata({ params }: { params: { activityType: string } }): Promise<Metadata> {
   const activityTypeParam = params.activityType;
-  const typeDetail = typeMapping[activityTypeParam];
-  const activityName = typeDetail ? typeDetail.displayName : activityTypeParam.charAt(0).toUpperCase() + activityTypeParam.slice(1);
+  // Use a default displayName if activityTypeParam is not in typeMapping
+  const typeDetail = typeMapping[activityTypeParam] || { 
+    ...defaultTypeInfo, // Spread defaultTypeInfo first
+    displayName: activityTypeParam.charAt(0).toUpperCase() + activityTypeParam.slice(1) // Then override displayName
+  };
+  const activityName = typeDetail.displayName;
   const currentMonthName = format(startOfMonth(new Date()), 'MMMM yyyy');
 
   return {
     title: `${activityName} - ${currentMonthName} | Rahsiveng Pastor Bial Zaipawl`,
     description: `View ${activityName.toLowerCase()} for ${currentMonthName}.`,
   };
+}
+
+export default function MonthlyActivityTypePageServer({ params }: { params: { activityType: string } }) {
+  const activityTypeParam = params.activityType;
+  // Provide a fallback for displayName and icon if activityTypeParam is not in typeMapping
+  const typeDetail = typeMapping[activityTypeParam] || 
+                     { 
+                       ...defaultTypeInfo, 
+                       displayName: activityTypeParam.charAt(0).toUpperCase() + activityTypeParam.slice(1) 
+                     };
+
+  return (
+    <MonthlyActivityDisplay 
+      activityTypeParam={activityTypeParam} 
+      typeDetail={typeDetail}
+    />
+  );
 }
