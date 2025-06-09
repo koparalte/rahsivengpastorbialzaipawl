@@ -263,7 +263,7 @@ export default function EventStatsPage() {
             <CardHeader>
               <div className="flex items-center gap-2 mb-2">
                 <ListChecks className="h-6 w-6 text-primary" />
-                <CardTitle>Tun Term chhung a Activities neih tawh te</CardTitle>
+                <CardTitle className="font-bold text-center flex-1">Tun Term chhung a Activities neih tawh te</CardTitle>
               </div>
 
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t">
