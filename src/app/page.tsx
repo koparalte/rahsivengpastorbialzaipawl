@@ -422,28 +422,28 @@ export default function DashboardPage() {
           <DashboardBanner bannerImageUrl={firebaseBannerImageUrl} />
 
           <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
-            <Link href={`/monthly-activities/rawngbawlna?month=${currentMonthQueryParam}`} passHref className="h-full">
+            <Link href={`/monthly-activities/rawngbawlna?month=${currentMonthQueryParam}`} passHref className="h-full transition-transform duration-150 ease-in-out active:scale-[0.98]">
               <SummaryCard
                 title={"Rawngbawlna " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
                 value={eventType1Count.toString()}
                 icon={CalendarCheck}
               />
             </Link>
-            <Link href={`/monthly-activities/hla-zir?month=${currentMonthQueryParam}`} passHref className="h-full">
+            <Link href={`/monthly-activities/hla-zir?month=${currentMonthQueryParam}`} passHref className="h-full transition-transform duration-150 ease-in-out active:scale-[0.98]">
               <SummaryCard
                 title={"Hla zir " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
                 value={eventType2Count.toString()}
                 icon={CalendarClock}
               />
             </Link>
-            <Link href={`/monthly-activities/others?month=${currentMonthQueryParam}`} passHref className="h-full">
+            <Link href={`/monthly-activities/others?month=${currentMonthQueryParam}`} passHref className="h-full transition-transform duration-150 ease-in-out active:scale-[0.98]">
               <SummaryCard
                 title={"Others " + (isMounted && currentMonth ? "(" + currentMonthNameForStats + ")" : '')}
                 value={eventType3Count.toString()}
                 icon={Package}
               />
             </Link>
-            <Link href="/stats" passHref className="h-full">
+            <Link href="/stats" passHref className="h-full transition-transform duration-150 ease-in-out active:scale-[0.98]">
               <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center text-center p-3 cursor-pointer h-full bg-card hover:bg-muted/50">
                 <CardHeader className="p-1 pb-1 flex flex-col items-center">
                   <BarChart3 className="h-6 w-6 text-accent mb-1" />
@@ -464,7 +464,7 @@ export default function DashboardPage() {
                     <Link href="/members" passHref>
                       <Button
                         aria-label="View Members"
-                        className="rounded-full w-16 h-16 shadow-md hover:shadow-lg transform transition-transform duration-150 ease-in-out bg-[#129990] hover:bg-[#0F7A73] text-primary-foreground"
+                        className="rounded-full w-16 h-16 shadow-md hover:shadow-lg transform transition-transform duration-150 ease-in-out active:scale-95 bg-[#129990] hover:bg-[#0F7A73] text-primary-foreground"
                       >
                         <Users className="h-10 w-10" />
                       </Button>
