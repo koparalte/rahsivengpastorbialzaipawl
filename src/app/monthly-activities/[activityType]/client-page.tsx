@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EventCard } from '@/components/dashboard/event-card';
 import { db, firebaseInitializationError } from '@/lib/firebase';
 import { collection, onSnapshot, QueryDocumentSnapshot, DocumentData, Timestamp } from "firebase/firestore";
-import { format, startOfMonth, endOfMonth, isWithinInterval, startOfDay, isSameDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval, startOfDay, isSameDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface Event {
