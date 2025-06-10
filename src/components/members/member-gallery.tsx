@@ -14,6 +14,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { getCachedData, setCachedData } from '@/lib/cache';
+
+const MEMBERS_CACHE_KEY = 'firebaseMembersCache';
 
 export interface PictureData {
   id: string;
@@ -45,86 +48,21 @@ export function MemberGallery() {
   const [allMembers, setAllMembers] = useState<PictureData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeAccordionItem, setActiveAccordionItem] = useState<string>(""); // Stores the value of the active item, "" for none (closed by default)
+  const [activeAccordionItem, setActiveAccordionItem] = useState<string>(""); 
   const [sortedDesignationKeys, setSortedDesignationKeys] = useState<string[]>([]);
 
   useEffect(() => {
-    if (firebaseInitializationError) {
-      setError(`Firebase Initialization Error: ${firebaseInitializationError}`);
-      setIsLoading(false);
-      setGroupedMembers({});
-      setAllMembers([]);
-      return;
+    const cachedMembers = getCachedData<PictureData[]>(MEMBERS_CACHE_KEY);
+    if (cachedMembers) {
+      processAndSetMembers(cachedMembers);
+      setIsLoading(false); // Loaded from cache
+      console.log("[MemberGallery] Loaded members from cache.");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount to check cache
 
-    if (!db) {
-      setError("Firestore database is not available. Firebase might not have initialized correctly. Please check your .env.local configuration and restart the server.");
-      setIsLoading(false);
-      setGroupedMembers({});
-      setAllMembers([]);
-      return;
-    }
-
-    setError(null);
-    setIsLoading(true); 
-
-    const picturesCollectionRef = collection(db, "pictures");
-
-    const unsubscribe = onSnapshot(picturesCollectionRef, (snapshot) => {
-      const pictureList: PictureData[] = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => {
-        const data = doc.data();
-        const imageUrl = data.imageUrl;
-        const altText = data.altText;
-        const aiHint = data.aiHint;
-        const name = data.name;
-        const designation = data.designation;
-        const designation2 = data.designation2;
-        const phoneNumber = data.phoneNumber;
-        const profileUrl = data.profileUrl;
-        const kohhran = data.kohhran;
-        const gender = data.gender;
-
-        if (!imageUrl) console.warn(`[Firestore Data Check] Document ID ${doc.id} missing 'imageUrl'.`);
-        if (!altText) console.warn(`[Firestore Data Check] Document ID ${doc.id} missing 'altText'.`);
-        if (name === undefined) console.warn(`[Firestore Data Check] Document ID ${doc.id} missing 'name'.`);
-        if (designation2 !== undefined && typeof designation2 !== 'string') {
-            console.warn(`[Firestore Data Check] Document ID ${doc.id} has 'designation2' field that is not a string. It will be ignored.`);
-        }
-        if (phoneNumber !== undefined && typeof phoneNumber !== 'string') {
-            console.warn(`[Firestore Data Check] Document ID ${doc.id} has 'phoneNumber' field that is not a string. It will be ignored.`);
-        }
-        if (profileUrl !== undefined && typeof profileUrl === 'string') {
-            console.warn(`[Firestore Data Check] Document ID ${doc.id} has 'profileUrl' field that is not a string. It will be ignored.`);
-        }
-        if (kohhran !== undefined && typeof kohhran !== 'string') {
-            console.warn(`[Firestore Data Check] Document ID ${doc.id} has 'kohhran' field that is not a string. It will be ignored.`);
-        }
-        let validatedGender: 'm' | 'f' | undefined = undefined;
-        if (gender !== undefined) {
-          if (gender === 'm' || gender === 'f') {
-            validatedGender = gender;
-          } else {
-            console.warn(`[Firestore Data Check] Document ID ${doc.id} has invalid 'gender' field: '${gender}'. Expected 'm' or 'f'. It will be treated as unspecified.`);
-          }
-        }
-
-        return {
-          id: doc.id,
-          imageUrl: imageUrl || "https://placehold.co/300x300.png",
-          altText: altText || "Image from Firestore",
-          aiHint: aiHint || "abstract",
-          name: name || "N/A",
-          designation: designation,
-          designation2: typeof designation2 === 'string' ? designation2 : undefined,
-          phoneNumber: phoneNumber || "N/A",
-          profileUrl: typeof profileUrl === 'string' ? profileUrl : undefined,
-          kohhran: typeof kohhran === 'string' ? kohhran : undefined,
-          gender: validatedGender,
-        };
-      });
-      
+  const processAndSetMembers = (pictureList: PictureData[]) => {
       setAllMembers(pictureList);
-
       const groups: GroupedMembers = pictureList.reduce((acc, member) => {
         let groupKey: string;
         const primaryDes = member.designation;
@@ -163,7 +101,6 @@ export function MemberGallery() {
           return (a.name || "").localeCompare(b.name || "");
         });
       }
-
       setGroupedMembers(groups);
 
       const allKeys = Object.keys(groups);
@@ -181,13 +118,97 @@ export function MemberGallery() {
       }
       
       setSortedDesignationKeys(finalSortedKeys);
+  };
+
+  useEffect(() => {
+    if (firebaseInitializationError) {
+      setError(`Firebase Initialization Error: ${firebaseInitializationError}`);
       setIsLoading(false);
+      // setGroupedMembers({}); // Don't clear if loaded from cache
+      // setAllMembers([]);
+      return;
+    }
+
+    if (!db) {
+      setError("Firestore database is not available. Firebase might not have initialized correctly. Please check your .env.local configuration and restart the server.");
+      setIsLoading(false);
+      // setGroupedMembers({});
+      // setAllMembers([]);
+      return;
+    }
+
+    // setError(null); // Clear error only on successful connection
+    // setIsLoading(true); // Only set if not already loaded from cache
+
+    const picturesCollectionRef = collection(db, "pictures");
+
+    const unsubscribe = onSnapshot(picturesCollectionRef, (snapshot) => {
+      const pictureList: PictureData[] = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => {
+        const data = doc.data();
+        const imageUrl = data.imageUrl;
+        const altText = data.altText;
+        const aiHint = data.aiHint;
+        const name = data.name;
+        const designation = data.designation;
+        const designation2 = data.designation2;
+        const phoneNumber = data.phoneNumber;
+        const profileUrl = data.profileUrl;
+        const kohhran = data.kohhran;
+        const gender = data.gender;
+
+        if (!imageUrl) console.warn(`[Firestore Data Check] Document ID ${doc.id} missing 'imageUrl'.`);
+        if (!altText) console.warn(`[Firestore Data Check] Document ID ${doc.id} missing 'altText'.`);
+        if (name === undefined) console.warn(`[Firestore Data Check] Document ID ${doc.id} missing 'name'.`);
+        if (designation2 !== undefined && typeof designation2 !== 'string') {
+            console.warn(`[Firestore Data Check] Document ID ${doc.id} has 'designation2' field that is not a string. It will be ignored.`);
+        }
+        if (phoneNumber !== undefined && typeof phoneNumber !== 'string') {
+            console.warn(`[Firestore Data Check] Document ID ${doc.id} has 'phoneNumber' field that is not a string. It will be ignored.`);
+        }
+        if (profileUrl !== undefined && typeof profileUrl === 'string') { // Should be profileUrl
+            console.warn(`[Firestore Data Check] Document ID ${doc.id} has 'profileUrl' field that is not a string. It will be ignored.`);
+        } else if (profileUrl !== undefined && typeof profileUrl !== 'string') { // Keep original warning if it's not a string
+             console.warn(`[Firestore Data Check] Document ID ${doc.id} has 'profileUrl' field that is not a string. It will be ignored.`);
+        }
+        if (kohhran !== undefined && typeof kohhran !== 'string') {
+            console.warn(`[Firestore Data Check] Document ID ${doc.id} has 'kohhran' field that is not a string. It will be ignored.`);
+        }
+        let validatedGender: 'm' | 'f' | undefined = undefined;
+        if (gender !== undefined) {
+          if (gender === 'm' || gender === 'f') {
+            validatedGender = gender;
+          } else {
+            console.warn(`[Firestore Data Check] Document ID ${doc.id} has invalid 'gender' field: '${gender}'. Expected 'm' or 'f'. It will be treated as unspecified.`);
+          }
+        }
+
+        return {
+          id: doc.id,
+          imageUrl: imageUrl || "https://placehold.co/300x300.png",
+          altText: altText || "Image from Firestore",
+          aiHint: aiHint || "abstract",
+          name: name || "N/A",
+          designation: designation,
+          designation2: typeof designation2 === 'string' ? designation2 : undefined,
+          phoneNumber: phoneNumber || "N/A",
+          profileUrl: typeof profileUrl === 'string' ? profileUrl : undefined,
+          kohhran: typeof kohhran === 'string' ? kohhran : undefined,
+          gender: validatedGender,
+        };
+      });
+      
+      processAndSetMembers(pictureList);
+      setCachedData(MEMBERS_CACHE_KEY, pictureList); // Update cache
+      setIsLoading(false);
+      setError(null); // Clear error on successful fetch
     }, (err) => {
       console.error("Error fetching pictures from Firestore:", err);
-      setError(`Failed to load pictures from Firestore: ${err.message}. Check browser console for details (e.g., permission errors, incorrect project config) and ensure your Firestore rules allow reads to the 'pictures' collection.`);
+      if (!getCachedData(MEMBERS_CACHE_KEY)) { // Only set error if no cache
+        setError(`Failed to load pictures from Firestore: ${err.message}. Check browser console for details (e.g., permission errors, incorrect project config) and ensure your Firestore rules allow reads to the 'pictures' collection.`);
+        setGroupedMembers({});
+        setAllMembers([]);
+      }
       setIsLoading(false);
-      setGroupedMembers({});
-      setAllMembers([]);
     });
 
     return () => unsubscribe();
@@ -210,7 +231,7 @@ export function MemberGallery() {
   }, [sortedDesignationKeys, isLoading, activeAccordionItem]);
 
 
-  if (error) {
+  if (error && !getCachedData(MEMBERS_CACHE_KEY)) { // Show error only if no cache
     return (
       <div className="text-center my-10 p-4 bg-destructive/10 text-destructive border border-destructive rounded-md">
         <h3 className="text-xl font-semibold mb-2">Error Loading Members</h3>
@@ -227,7 +248,7 @@ export function MemberGallery() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading && Object.keys(groupedMembers).length === 0) { // Show loading only if no data (from cache or initial fetch)
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -303,5 +324,3 @@ export function MemberGallery() {
     </section>
   );
 }
-
-    

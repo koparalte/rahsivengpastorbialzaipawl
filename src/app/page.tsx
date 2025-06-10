@@ -23,6 +23,9 @@ import { db, firebaseInitializationError } from '@/lib/firebase';
 import { collection, onSnapshot, QueryDocumentSnapshot, DocumentData, Timestamp } from "firebase/firestore";
 import { SummaryCard } from '@/components/dashboard/summary-card';
 import { cn } from '@/lib/utils';
+import { getCachedData, setCachedData } from '@/lib/cache';
+
+const EVENTS_CACHE_KEY = 'firebaseEventsCache';
 
 // Define the structure for an event
 interface Event {
@@ -45,7 +48,7 @@ const sessionOrder: Record<NonNullable<Event['session']>, number> = {
 
 export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
-  const [currentMonth, setCurrentMonth] = React.useState<Date | undefined>(new Date()); // Initialize with current date
+  const [currentMonth, setCurrentMonth] = React.useState<Date | undefined>(new Date());
   const [isMounted, setIsMounted] = React.useState(false);
 
   const [events, setEvents] = useState<Event[]>([]);
@@ -64,16 +67,23 @@ export default function DashboardPage() {
   const [canGoToNextEventDay, setCanGoToNextEventDay] = useState(false);
 
   useEffect(() => {
-    // Set currentMonth initially for the calendar if not already set.
     if (!currentMonth) {
       setCurrentMonth(new Date());
     }
     setIsMounted(true);
-  }, []);
+
+    // Try to load from cache first
+    const cachedEvents = getCachedData<Event[]>(EVENTS_CACHE_KEY);
+    if (cachedEvents) {
+      setEvents(cachedEvents);
+      setIsLoadingEvents(false); // Assume cache is good enough for initial render
+      console.log("[DashboardPage] Loaded events from cache.");
+    }
+  }, []); // Removed currentMonth from deps to avoid re-running this specific cache logic on month change
 
   useEffect(() => {
-    if (isMounted && !isLoadingEvents && selectedDate === undefined) {
-      if (events.length > 0) {
+    if (isMounted && !isLoadingEvents && selectedDate === undefined && events.length > 0) {
+      // This logic should run after events are potentially loaded from cache or Firestore
         const today = startOfDay(new Date());
         const relevantEvents = events
           .filter(event => {
@@ -92,15 +102,18 @@ export default function DashboardPage() {
         if (relevantEvents.length > 0) {
           const nearestEvent = relevantEvents[0];
           setSelectedDate(nearestEvent.date);
-          setCurrentMonth(nearestEvent.date); // Update calendar month to event's month
+          setCurrentMonth(nearestEvent.date); 
+        } else if (events.length > 0) { // If no upcoming, select last known event or current date
+            const lastEvent = events.sort((a,b) => b.date.getTime() - a.date.getTime())[0];
+            setSelectedDate(lastEvent.date);
+            setCurrentMonth(lastEvent.date);
         } else {
           setSelectedDate(new Date());
-          setCurrentMonth(new Date()); // Default to current month
+          setCurrentMonth(new Date()); 
         }
-      } else {
+    } else if (isMounted && !isLoadingEvents && selectedDate === undefined && events.length === 0) {
         setSelectedDate(new Date());
-        setCurrentMonth(new Date()); // Default to current month
-      }
+        setCurrentMonth(new Date());
     }
   }, [isMounted, isLoadingEvents, events, selectedDate]);
 
@@ -122,36 +135,39 @@ export default function DashboardPage() {
         "Check the browser console and terminal for more specific errors (especially any lines starting with [Firestore Data Check] in the browser console)."
       );
       setIsLoadingEvents(false);
-      setEvents([]);
+      // Do not clear events if loaded from cache
+      // setEvents([]); 
       return;
     }
 
     if (!db) {
       setEventsError("Firestore database is not available. Firebase might not have initialized correctly. Please check your .env.local configuration and restart the server. Also, verify your Firestore 'calendarEvents' collection exists and security rules allow reads. Check the browser console and terminal for more specific errors (especially any lines starting with [Firestore Data Check] in the browser console).");
       setIsLoadingEvents(false);
-      setEvents([]);
+      // setEvents([]);
       return;
     }
 
-    setEventsError(null);
-    setIsLoadingEvents(true);
+    // setEventsError(null); // Clear previous errors only if successfully connecting
+    // setIsLoadingEvents(true); // Only set loading if not already loaded from cache
 
     const eventsCollectionRef = collection(db, "calendarEvents");
 
     const unsubscribe = onSnapshot(eventsCollectionRef, (snapshot) => {
       const fetchedEvents: Event[] = snapshot.docs.map((docSnap: QueryDocumentSnapshot<DocumentData>) => {
         const data = docSnap.data();
-        const eventDate = data.date instanceof Timestamp ? data.date.toDate() : new Date();
+        const eventDate = data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date); // Handle potential string dates from old cache
 
-        if (!(data.date instanceof Timestamp)) {
-            console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " in 'calendarEvents' collection has a 'date' field that is not a Firestore Timestamp. Using current date as fallback.");
+        if (!(data.date instanceof Timestamp) && typeof data.date !== 'string') {
+            console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " in 'calendarEvents' collection has a 'date' field that is not a Firestore Timestamp or string. Using current date as fallback.");
         }
         let eventEndDate: Date | undefined = undefined;
         if (data.endDate) {
           if (data.endDate instanceof Timestamp) {
             eventEndDate = data.endDate.toDate();
+          } else if (typeof data.endDate === 'string') {
+            eventEndDate = new Date(data.endDate);
           } else {
-            console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " in 'calendarEvents' collection has an 'endDate' field that is not a Firestore Timestamp. It will be ignored.");
+            console.warn("[Firestore Data Check] Document with ID " + docSnap.id + " in 'calendarEvents' collection has an 'endDate' field that is not a Firestore Timestamp or string. It will be ignored.");
           }
         }
 
@@ -185,7 +201,7 @@ export default function DashboardPage() {
         let eventSession: Event['session'] | undefined = undefined;
         if (data.session && (data.session === 'Zing' || data.session === 'Chawhnu' || data.session === 'Zan' || data.session === 'Chhun leh Zan')) {
             eventSession = data.session;
-        } else if (data.session && data.session.trim() !== "") { // Check if session exists and is not empty before warning
+        } else if (data.session && data.session.trim() !== "") { 
             console.warn(`[Firestore Data Check] Document with ID ${docSnap.id} has an invalid 'session' field: '${data.session}'. It will be ignored.`);
         }
 
@@ -202,34 +218,36 @@ export default function DashboardPage() {
         };
       });
       setEvents(fetchedEvents);
+      setCachedData(EVENTS_CACHE_KEY, fetchedEvents); // Update cache
       setIsLoadingEvents(false);
-      setEventsError(null);
+      setEventsError(null); // Clear error on successful fetch
     }, (err: any) => {
       console.error("Error fetching events from Firestore:", err);
-      setEventsError("Failed to load events from Firestore: " + err.message + ". Check browser console for details (e.g., permission errors, incorrect project config) and ensure your Firestore rules allow reads to the 'calendarEvents' collection. Also, check your terminal where 'npm run dev' is running for server-side errors.");
+      const newError = "Failed to load events from Firestore: " + err.message + ". Check browser console for details (e.g., permission errors, incorrect project config) and ensure your Firestore rules allow reads to the 'calendarEvents' collection. Also, check your terminal where 'npm run dev' is running for server-side errors.";
+      if (!getCachedData(EVENTS_CACHE_KEY)) { // Only set error if no cache
+        setEventsError(newError);
+        setEvents([]);
+      }
       setIsLoadingEvents(false);
-      setEvents([]);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, []); // Empty dependency array ensures this runs once for setting up listener
 
   useEffect(() => {
     if (events.length > 0 && currentMonth) {
-      const monthToDisplay = currentMonth; // Use the calendar's currentMonth state
+      const monthToDisplay = currentMonth; 
       const eventsInSelectedMonth = events.filter(event => {
         const eventStartDate = startOfDay(event.date);
         const validEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) ? endOfDay(event.endDate) : undefined;
         const monthStart = startOfMonth(monthToDisplay);
-        const monthEnd = endOfDay(startOfMonth(addDays(monthStart, 35))); // Ensure we cover the full month display
+        const monthEnd = endOfDay(startOfMonth(addDays(monthStart, 35))); 
 
         if (validEndDate && !isSameDay(eventStartDate, validEndDate)) {
             const intervalStart = eventStartDate < validEndDate ? eventStartDate : validEndDate;
             const intervalEnd = eventStartDate < validEndDate ? validEndDate : eventStartDate;
-            // Check if the event's interval overlaps with the selected month's interval
             return intervalStart <= monthEnd && intervalEnd >= monthStart;
         } else {
-            // For single day events, check if it's in the selected month
             return isSameMonth(eventStartDate, monthToDisplay);
         }
       });
@@ -344,8 +362,7 @@ export default function DashboardPage() {
         .sort((a, b) => {
           const aIsEvent1 = a.type === 'event1';
           const bIsEvent1 = b.type === 'event1';
-
-          // Prioritize 'Chhun leh Zan' session for 'event1' types
+          
           const aSessionValue = aIsEvent1 && a.session ? sessionOrder[a.session] : Infinity;
           const bSessionValue = bIsEvent1 && b.session ? sessionOrder[b.session] : Infinity;
           
@@ -410,7 +427,7 @@ export default function DashboardPage() {
   };
 
   const currentMonthNameForStats = isMounted && currentMonth ? format(currentMonth, 'MMMM yyyy') : 'Loading...';
-  const currentMonthQueryParam = isMounted && currentMonth ? format(currentMonth, 'yyyy-MM') : '';
+  const currentMonthQueryParam = isMounted && currentMonth ? format(currentMonth, 'yyyy-MM') : format(new Date(), 'yyyy-MM');
 
 
   return (

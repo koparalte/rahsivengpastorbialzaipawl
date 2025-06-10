@@ -6,7 +6,7 @@ import { AppHeader } from '@/components/layout/header';
 import { AppFooter } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowLeft, Loader2, AlertTriangle, BarChart3, ListChecks, CalendarCheck, CalendarClock, Package, CalendarDays, Users } from 'lucide-react'; // Added CalendarDays, Users
+import { ArrowLeft, Loader2, AlertTriangle, BarChart3, ListChecks, CalendarCheck, CalendarClock, Package, CalendarDays, Users } from 'lucide-react'; 
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { db, firebaseInitializationError } from '@/lib/firebase';
@@ -22,7 +22,10 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
-} from "@/components/ui/dialog"; // Added Dialog components
+} from "@/components/ui/dialog"; 
+import { getCachedData, setCachedData } from '@/lib/cache';
+
+const STATS_EVENTS_CACHE_KEY = 'firebaseStatsEventsCache';
 
 interface ChartEvent {
   id: string;
@@ -99,48 +102,20 @@ export default function EventStatsPage() {
   const [isEventDetailDialogOpen, setIsEventDetailDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (firebaseInitializationError) {
-      setError(`Firebase Initialization Error: ${firebaseInitializationError}`);
+    const cachedEvents = getCachedData<DetailedEvent[]>(STATS_EVENTS_CACHE_KEY);
+    if (cachedEvents) {
+      processEventsData(cachedEvents);
       setIsLoading(false);
-      return;
+      console.log("[StatsPage] Loaded events from cache.");
     }
-    if (!db) {
-      setError("Firestore database is not available.");
-      setIsLoading(false);
-      return;
-    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    const eventsCollectionRef = collection(db, "calendarEvents");
-    const unsubscribe = onSnapshot(eventsCollectionRef, (snapshot) => {
-      const fetchedChartEvents: ChartEvent[] = [];
-      const fetchedDetailedEvents: DetailedEvent[] = [];
-
-      snapshot.docs.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
-        const data = docSnap.data();
-        const eventDate = data.date instanceof Timestamp ? data.date.toDate() : new Date();
-        const eventEndDate = data.endDate instanceof Timestamp ? data.endDate.toDate() : undefined;
-
-        fetchedChartEvents.push({
-          id: docSnap.id,
-          date: eventDate,
-          type: data.type,
-        });
-
-        fetchedDetailedEvents.push({
-            id: docSnap.id,
-            title: data.title || "Untitled Event",
-            description: data.description || "No description available.",
-            date: eventDate,
-            endDate: eventEndDate,
-            type: data.type,
-            session: data.session,
-        });
-      });
-
+  const processEventsData = (fetchedDetailedEvents: DetailedEvent[]) => {
       setAllDetailedEvents(fetchedDetailedEvents);
 
       const statsByMonth: Record<string, Omit<MonthlyStat, 'month'>> = {};
-      fetchedChartEvents.forEach(event => {
+      fetchedDetailedEvents.forEach(event => { // Use fetchedDetailedEvents for stats calculation
         const monthKey = format(startOfMonth(event.date), "yyyy-MM");
         if (!statsByMonth[monthKey]) {
           statsByMonth[monthKey] = { rawngbawlna: 0, hlaZir: 0, others: 0 };
@@ -166,17 +141,58 @@ export default function EventStatsPage() {
           others: counts.others,
         }))
         .sort((a, b) => {
-            const dateA = parseISO(Object.keys(statsByMonth).find(key => format(parseISO(key + "-01"), "MMM yy") === a.month) + "-01");
-            const dateB = parseISO(Object.keys(statsByMonth).find(key => format(parseISO(key + "-01"), "MMM yy") === b.month) + "-01");
+            const dateAKeys = Object.keys(statsByMonth).filter(key => format(parseISO(key + "-01"), "MMM yy") === a.month);
+            const dateBKeys = Object.keys(statsByMonth).filter(key => format(parseISO(key + "-01"), "MMM yy") === b.month);
+            if (dateAKeys.length === 0 || dateBKeys.length === 0) return 0; // Should not happen if data is consistent
+
+            const dateA = parseISO(dateAKeys[0] + "-01");
+            const dateB = parseISO(dateBKeys[0] + "-01");
             return dateA.getTime() - dateB.getTime();
         });
       setMonthlyStats(formattedStats);
+  };
 
+  useEffect(() => {
+    if (firebaseInitializationError) {
+      setError(`Firebase Initialization Error: ${firebaseInitializationError}`);
+      setIsLoading(false);
+      return;
+    }
+    if (!db) {
+      setError("Firestore database is not available.");
+      setIsLoading(false);
+      return;
+    }
+
+    const eventsCollectionRef = collection(db, "calendarEvents");
+    const unsubscribe = onSnapshot(eventsCollectionRef, (snapshot) => {
+      const fetchedDetailedEvents: DetailedEvent[] = [];
+
+      snapshot.docs.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+        const data = docSnap.data();
+        const eventDate = data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date);
+        const eventEndDate = data.endDate instanceof Timestamp ? data.endDate.toDate() : (data.endDate ? new Date(data.endDate) : undefined);
+
+        fetchedDetailedEvents.push({
+            id: docSnap.id,
+            title: data.title || "Untitled Event",
+            description: data.description || "No description available.",
+            date: eventDate,
+            endDate: eventEndDate,
+            type: data.type,
+            session: data.session,
+        });
+      });
+
+      processEventsData(fetchedDetailedEvents);
+      setCachedData(STATS_EVENTS_CACHE_KEY, fetchedDetailedEvents); // Update cache
       setIsLoading(false);
       setError(null);
     }, (err) => {
       console.error("Error fetching event stats:", err);
-      setError(`Failed to load event statistics: ${err.message}`);
+      if (!getCachedData(STATS_EVENTS_CACHE_KEY)) { // Only set error if no cache
+         setError(`Failed to load event statistics: ${err.message}`);
+      }
       setIsLoading(false);
     });
 
@@ -211,7 +227,7 @@ export default function EventStatsPage() {
 
     for (const monthKey in groups) {
       groups[monthKey].sort((a, b) => {
-        const dateDiff = b.date.getTime() - a.date.getTime(); // Sort by newest date first
+        const dateDiff = b.date.getTime() - a.date.getTime(); 
         if (dateDiff !== 0) return dateDiff;
 
         if (a.type === 'event1' && b.type === 'event1' && a.session && b.session) {
@@ -271,32 +287,32 @@ export default function EventStatsPage() {
                   <CalendarCheck className="h-5 w-5 text-destructive" />
                   <div>
                     <p className="text-xs text-muted-foreground">Total Rawngbawlna</p>
-                    <p className="text-lg font-semibold">{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : totalCounts.event1}</p>
+                    <p className="text-lg font-semibold">{isLoading && totalCounts.event1 === 0 ? <Loader2 className="h-4 w-4 animate-spin" /> : totalCounts.event1}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
                   <CalendarClock className="h-5 w-5 text-primary" />
                   <div>
                     <p className="text-xs text-muted-foreground">Total Hla Zir</p>
-                    <p className="text-lg font-semibold">{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : totalCounts.event2}</p>
+                    <p className="text-lg font-semibold">{isLoading && totalCounts.event2 === 0 ? <Loader2 className="h-4 w-4 animate-spin" /> : totalCounts.event2}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
                   <Package className="h-5 w-5 text-accent" />
                   <div>
                     <p className="text-xs text-muted-foreground">Total Others</p>
-                    <p className="text-lg font-semibold">{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : totalCounts.event3}</p>
+                    <p className="text-lg font-semibold">{isLoading && totalCounts.event3 === 0 ? <Loader2 className="h-4 w-4 animate-spin" /> : totalCounts.event3}</p>
                   </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="min-h-[200px]">
-              {isLoading ? (
+              {isLoading && sortedMonthKeys.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
                   <span className="text-muted-foreground">Loading event list...</span>
                 </div>
-              ) : error ? (
+              ) : error && !getCachedData(STATS_EVENTS_CACHE_KEY) ? (
                 <div className="text-destructive p-4 bg-destructive/10 border border-destructive rounded-md h-full flex flex-col items-center justify-center">
                   <AlertTriangle className="mr-2 h-6 w-6" />
                   <span className="font-semibold">Error Loading Event List</span>
@@ -349,12 +365,12 @@ export default function EventStatsPage() {
 
           <Card className="shadow-xl">
             <CardContent className="min-h-[300px] pt-6">
-              {isLoading ? (
+              {isLoading && monthlyStats.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="mr-2 h-8 w-8 animate-spin text-primary" />
                   <span className="text-muted-foreground">Loading chart data...</span>
                 </div>
-              ) : error ? (
+              ) : error && !getCachedData(STATS_EVENTS_CACHE_KEY) ? (
                 <div className="text-destructive p-4 bg-destructive/10 border border-destructive rounded-md h-full flex flex-col items-center justify-center">
                   <AlertTriangle className="mr-2 h-6 w-6" />
                   <span className="font-semibold">Error Loading Chart</span>
@@ -451,4 +467,3 @@ export default function EventStatsPage() {
     </div>
   );
 }
-

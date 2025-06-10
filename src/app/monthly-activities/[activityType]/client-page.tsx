@@ -3,15 +3,18 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation'; // Added useRouter
+import { useSearchParams, useRouter } from 'next/navigation'; 
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CalendarCheck, CalendarClock, Package as PackageIcon, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'; // Added ChevronLeft, ChevronRight
+import { ArrowLeft, CalendarCheck, CalendarClock, Package as PackageIcon, Loader2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'; 
 import { Card, CardContent } from "@/components/ui/card";
 import { EventCard } from '@/components/dashboard/event-card';
 import { db, firebaseInitializationError } from '@/lib/firebase';
 import { collection, onSnapshot, QueryDocumentSnapshot, DocumentData, Timestamp } from "firebase/firestore";
-import { format, startOfMonth, endOfMonth, startOfDay, endOfDay, isSameDay, parseISO, addMonths, subMonths } from 'date-fns'; // Added addMonths, subMonths
+import { format, startOfMonth, endOfMonth, startOfDay, endOfDay, isSameDay, parseISO, addMonths, subMonths } from 'date-fns'; 
 import { cn } from '@/lib/utils';
+import { getCachedData, setCachedData } from '@/lib/cache';
+
+const MONTHLY_EVENTS_CACHE_PREFIX = 'firebaseMonthlyEventsCache_';
 
 interface Event {
   id: string;
@@ -55,7 +58,7 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const monthQuery = searchParams.get('month'); // e.g., "2024-07"
+  const monthQuery = searchParams.get('month'); 
 
   const targetMonthDate = useMemo(() => {
     if (monthQuery) {
@@ -74,6 +77,7 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
 
   const currentMonthStart = useMemo(() => startOfDay(startOfMonth(targetMonthDate)), [targetMonthDate]);
   const currentMonthEnd = useMemo(() => endOfDay(endOfMonth(targetMonthDate)), [targetMonthDate]);
+  const cacheKey = `${MONTHLY_EVENTS_CACHE_PREFIX}${typeDetail.firestoreType}_${format(targetMonthDate, 'yyyy-MM')}`;
 
   useEffect(() => {
     const monthName = format(targetMonthDate, 'MMMM yyyy');
@@ -82,7 +86,17 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
     document.title = `${dynamicTitle} | Rahsiveng Pastor Bial Zaipawl`;
     const IconToUse = clientIconMapping[typeDetail.firestoreType] || clientIconMapping.default;
     setPageIconComponent(() => IconToUse);
-  }, [activityTypeParam, typeDetail, targetMonthDate]);
+
+    // Try loading from cache specific to this month and type
+    const cachedEvents = getCachedData<Event[]>(cacheKey);
+    if (cachedEvents) {
+      setEvents(cachedEvents);
+      setIsLoading(false);
+      console.log(`[MonthlyActivityDisplay] Loaded events for ${dynamicTitle} from cache.`);
+    } else {
+      setIsLoading(true); // Ensure loading is true if no cache
+    }
+  }, [activityTypeParam, typeDetail, targetMonthDate, cacheKey]);
 
   const handleMonthChange = (newMonthDate: Date) => {
     const newMonthQuery = format(newMonthDate, 'yyyy-MM');
@@ -125,17 +139,19 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
           console.log(`[Firestore Data Processing] Event ID: ${docSnap.id}, Raw data.endDate type: ${typeof data.endDate}, isTimestamp: ${data.endDate instanceof Timestamp}`, data.endDate);
         }
 
-        const eventDate = data.date instanceof Timestamp ? data.date.toDate() : new Date();
-        if (!(data.date instanceof Timestamp)) {
-            console.warn(`[Firestore Data Check - ${docSnap.id}] 'date' field is not a Firestore Timestamp. Fallback to current date.`);
+        const eventDate = data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date);
+        if (!(data.date instanceof Timestamp) && typeof data.date !== 'string') {
+            console.warn(`[Firestore Data Check - ${docSnap.id}] 'date' field is not a Firestore Timestamp or string. Fallback to current date.`);
         }
 
         let eventEndDate: Date | undefined = undefined;
         if (data.endDate) {
           if (data.endDate instanceof Timestamp) {
             eventEndDate = data.endDate.toDate();
+          } else if (typeof data.endDate === 'string') {
+            eventEndDate = new Date(data.endDate);
           } else {
-            console.warn(`[Firestore Data Check - ${docSnap.id}] 'endDate' field is present but not a Firestore Timestamp. It will be ignored.`);
+            console.warn(`[Firestore Data Check - ${docSnap.id}] 'endDate' field is present but not a Firestore Timestamp or string. It will be ignored.`);
           }
         }
         
@@ -151,15 +167,40 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
         };
       });
       setEvents(fetchedEvents);
+      // This might seem redundant if we are filtering again in useMemo,
+      // but we could cache the *entire* fetched set if we had a global cache strategy.
+      // For now, we cache the potentially filtered (by date range of snapshot query if we had one) data.
+      // Let's cache *all* events and let useMemo filter. The cacheKey for set should be more general.
+      // For simplicity of this change, we'll stick to caching based on the current view's specific key for now.
+      // A better approach would be a global cache for 'allEvents' and then filter.
+      // For now, the useMemo below filters the `fetchedEvents`. We can cache the `filteredEvents` result.
+      // This means we don't need to set cache here but after filtering in useMemo.
+      // However, `onSnapshot` provides *all* events, so filtering happens client-side.
+      // Let's cache `fetchedEvents` with a general key, and then filter.
+      // No, stick to current plan: cache what this page uses, which means events for the current month/type
+      setCachedData(cacheKey, fetchedEvents.filter(event => { // Pre-filter before caching for this specific key
+         const targetFirestoreType = typeDetail.firestoreType;
+         const eventStartDate = startOfDay(event.date);
+         const effectiveEventEndDate = event.endDate instanceof Date && !isNaN(event.endDate.getTime()) 
+                                       ? endOfDay(event.endDate) 
+                                       : endOfDay(event.date);
+         const eventMatchesType = targetFirestoreType ? event.type === targetFirestoreType : (event.type !== 'event1' && event.type !== 'event2');
+         const eventIsInSelectedMonth = eventStartDate <= currentMonthEnd && effectiveEventEndDate >= currentMonthStart;
+         return eventMatchesType && eventIsInSelectedMonth;
+      }));
+
       setIsLoading(false);
+      setError(null);
     }, (err) => {
       console.error("Error fetching monthly activities:", err);
-      setError(`Failed to load activities: ${err.message}`);
+      if (!getCachedData(cacheKey)) {
+         setError(`Failed to load activities: ${err.message}`);
+      }
       setIsLoading(false);
     });
 
     return () => unsubscribe();
-  }, [firebaseInitializationError, currentMonthStart, currentMonthEnd, typeDetail.displayName, typeDetail.firestoreType]);
+  }, [firebaseInitializationError, currentMonthStart, currentMonthEnd, typeDetail.displayName, typeDetail.firestoreType, cacheKey]); // Added cacheKey
 
   const filteredEvents = useMemo(() => {
     const targetFirestoreType = typeDetail.firestoreType;
@@ -178,18 +219,20 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
                                       ? endOfDay(event.endDate) 
                                       : endOfDay(event.date);
 
-        const eventMatchesType = targetFirestoreType ? event.type === targetFirestoreType : (event.type !== 'event1' && event.type !== 'event2');
+        const eventMatchesType = targetFirestoreType ? event.type === targetFirestoreType : (event.type !== 'event1' && event.type !== 'event2' && event.type !== 'event3'); // ensure 'others' doesn't pick up event1/2
         
         const eventIsInSelectedMonth = eventStartDate <= currentMonthEnd && effectiveEventEndDate >= currentMonthStart;
         
-        if (event.type === targetFirestoreType || !targetFirestoreType) {
-          console.log(`[Event Filter Details - ID: ${event.id}]
+        // More detailed logging
+        const shouldLog = (event.type === targetFirestoreType) || (!targetFirestoreType && !['event1', 'event2', 'event3'].includes(event.type || ''));
+        if (shouldLog) {
+           console.log(`[Event Filter Details - ID: ${event.id}]
             Event Title: "${event.title}", Type: ${event.type || 'N/A'}
             Raw Dates: Start=${event.date ? event.date.toISOString() : 'Invalid/Missing'}, End=${event.endDate ? event.endDate.toISOString() : 'N/A'}
             Processed Event Dates (for filter): Start=${format(eventStartDate, 'yyyy-MM-dd HH:mm:ss')}, End=${format(effectiveEventEndDate, 'yyyy-MM-dd HH:mm:ss')}
-            Selected Month Range (for filter): Start=${format(currentMonthStart, 'yyyy-MM-dd HH:mm:ss')}, End=${format(currentMonthEnd, 'yyyy-MM-dd HH:mm:ss')}
+            Current Month Range (for filter): Start=${format(currentMonthStart, 'yyyy-MM-dd HH:mm:ss')}, End=${format(currentMonthEnd, 'yyyy-MM-dd HH:mm:ss')}
             Filter Criteria:
-              - Matches Target Type ('${targetFirestoreType || 'any other'}'): ${eventMatchesType}
+              - Matches Target Type ('${targetFirestoreType || 'any other (not event1/2/3)'}'): ${eventMatchesType}
               - Is In Selected Month: ${eventIsInSelectedMonth}
                 (Condition: ${format(eventStartDate, 'MM/dd')} <= ${format(currentMonthEnd, 'MM/dd')} AND ${format(effectiveEventEndDate, 'MM/dd')} >= ${format(currentMonthStart, 'MM/dd')})
             Final Decision: ${eventMatchesType && eventIsInSelectedMonth ? 'INCLUDE' : 'EXCLUDE'}`);
@@ -213,7 +256,7 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
 
   return (
     <div className="container mx-auto px-4 md:px-6">
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4"> {/* Reduced mb from 8 to 4 */}
+      <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4"> 
         <div className="flex items-center gap-3">
           {PageIconComponent && <PageIconComponent className="h-8 w-8 text-primary" />}
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{pageTitle}</h1>
@@ -226,7 +269,6 @@ export default function MonthlyActivityDisplay({ activityTypeParam, typeDetail }
         </Button>
       </div>
 
-      {/* Month Navigation Widget */}
       <div className="flex items-center justify-center gap-4 mb-8 p-4 bg-card rounded-lg shadow">
         <Button variant="outline" size="icon" onClick={handlePreviousMonth} aria-label="Previous month">
           <ChevronLeft className="h-5 w-5" />
